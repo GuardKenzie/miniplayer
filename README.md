@@ -10,6 +10,8 @@ The config file is located at `~/.config/miniplayer/config`. The example configu
 * ***font_width*:** The width of your font in pixels in the actual terminal.
 * ***font_height*:** The height of your font in pixels in the actual terminal.
 
+![font-example](img/font.png)
+
 ## Keybinds
 
 | Key | function      |
