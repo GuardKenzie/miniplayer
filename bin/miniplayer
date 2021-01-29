@@ -1,0 +1,461 @@
+#!/bin/python
+import curses
+import os
+from mpd import MPDClient
+import ffmpeg
+import pixcat
+import time
+from PIL import Image, ImageDraw
+
+
+# Image ratio
+# Change this to match the (width, height) of your font.
+IMAGERATIO = (11, 24)
+
+# Music directory
+MUSICDIR = "~/Music"
+MUSICDIR = os.path.expanduser(MUSICDIR)
+
+
+def albumArtSize(album_space, window_width):
+    """
+    Calculates the album art size given the window width and the height
+    of the album art space
+    """
+    if window_width * IMAGERATIO[0] > album_space * IMAGERATIO[1]:
+        image_width_px = album_space * IMAGERATIO[1]
+    else:
+        image_width_px = window_width * IMAGERATIO[0]
+
+    image_width  = int(image_width_px  // IMAGERATIO[0])
+    image_height = int(image_width_px  // IMAGERATIO[1])
+
+    return image_width_px, image_width, image_height
+
+
+class Player:
+    def __init__(self):
+        # Curses initialisation
+        self.stdscr = curses.initscr()
+        self.stdscr.nodelay(True)
+
+        # Curses config
+        curses.noecho()
+        curses.curs_set(0)
+
+        curses.cbreak()
+
+        curses.start_color()
+        curses.use_default_colors()
+        curses.init_pair(1, curses.COLOR_GREEN, -1)
+        curses.init_pair(2, curses.COLOR_YELLOW, -1)
+
+        # MPD init
+        self.client = MPDClient()
+        self.client.connect("localhost", 6600)
+
+        self.last_song = None
+
+        # Curses window
+        self.window_height, self.window_width = self.stdscr.getmaxyx()
+        self.win = curses.newwin(self.window_height, self.window_width, 0, 0)
+
+        self.text_start = int(self.window_height - 5)
+        self.album_space = self.text_start - 2
+
+        # Calculate the size of the image
+        self.image_width_px, self.image_width, self.image_height = albumArtSize(self.album_space, self.window_width)
+        self.image_y_pos = (self.album_space - self.image_height) // 2 + 1
+
+        # Album art location
+        self.album_art_loc = "/tmp/aartminip.png"
+
+        # Toggle for help menu
+        self.help = False
+        self.cleared = False
+
+
+    def fitText(self):
+        """
+        A function that fits album name, artist name and song name
+        to the screen with the given width.
+        """
+        state = 0
+        song = self.title
+        album = self.album
+        artist = self.artist
+        width = self.window_width
+
+        if len(song) > width:
+            song = song[:width - len(song)]
+            song = song[:-4].strip() + "..."
+
+        if len(album) == 0:
+            sep = 0
+        else:
+            sep = 3
+
+        if len(artist) + len(album) + sep > width:
+            state = 1
+            if len(artist) > width:
+                artist = artist[:width - len(artist)]
+                artist = artist[:-4].strip() + "..."
+            if len(album) > width:
+                album = album[:width - len(album)]
+                album = album[:-4].strip() + "..."
+
+        if len(album) == 0:
+            state = 2
+
+        return (state, album, artist, song)
+
+
+    def updateWindowSize(self):
+        """
+        A function to check if the window size changed
+        """
+        new_height, new_width = self.stdscr.getmaxyx()
+
+        if (new_height, new_width) != (self.window_height, self.window_width):
+            self.win.clear()
+
+            # Curses window
+            self.window_height, self.window_width = self.stdscr.getmaxyx()
+
+            self.text_start = int(self.window_height - 5)
+            self.album_space = self.text_start - 2
+
+            # Calculate the size of the image
+            self.image_width_px, self.image_width, self.image_height = albumArtSize(self.album_space, self.window_width)
+            self.image_y_pos = (self.album_space - self.image_height) // 2 + 1
+
+            # Resize the window
+            self.win.resize(self.window_height, self.window_width)
+            self.last_song = None
+
+
+    def getAlbumArt(self, song_file):
+        """
+        A function that extracts the album art from song_file and
+        saves it to self.album_art_loc
+        """
+        song_file_abs = os.path.join(MUSICDIR, song_file)
+
+        process = (
+                ffmpeg
+                .input(song_file_abs)
+                .output(self.album_art_loc)
+        )
+        try:
+            process.run(quiet=True, overwrite_output=True)
+        except ffmpeg._run.Error:
+            foregroundCol = "#D8DEE9"
+            backgroundCol = "#262A33"
+
+            size = 512*4
+
+            art = Image.new("RGB", (size, size), color=backgroundCol)
+            d = ImageDraw.Draw(art)
+
+            for i in range(4):
+                offset = (i - 2) * 70
+
+                external = size/3
+
+                x0 = round(external) - offset
+                y0 = round(external) + offset
+                x1 = round(external*2) - offset
+                y1 = round(external*2) + offset
+
+                externalyx = [(x0, y0), (x1, y1)]
+
+                d.rectangle(externalyx, outline=foregroundCol, width=40)# fill=foregroundCol)
+            # d.ellipse(internalxy, fill=backgroundCol)
+            art.resize((512, 512))
+            art.save(self.album_art_loc, "PNG")
+
+
+
+    def checkSongUpdate(self):
+        """
+        Checks if there is a new song playing
+
+        Returns:
+            1 -- if song state is "stop"
+            0 -- if there is no change
+            2 -- if there is a new song
+        """
+        status = self.client.status()
+
+        if status["state"] == "stop":
+            return 1
+
+        song = self.client.currentsong()
+        self.elapsed = float(status["elapsed"])
+        self.duration = float(status["duration"])
+        self.progress = self.elapsed/self.duration
+
+        if self.last_song != song:
+            self.win.clear()
+
+            try:
+                self.album = song["album"]
+            except KeyError:
+                self.album = ""
+
+            self.artist = song["artist"]
+            self.title = song["title"]
+
+            self.last_song = song
+
+            self.getAlbumArt(song["file"])
+            self.last_song = song
+
+            return 0
+
+        else:
+            return 2
+
+
+    def handleKeypress(self):
+        """
+        A function to handle keypresses
+
+        Keys:
+            '>' -- Next track
+            '<' -- Last track
+            '+' -- Volume up +5
+            '-' -- Volume down -5
+            'p' -- Play/pause
+            'q' -- Quit
+            'h' -- Help
+        """
+
+        anytime_keys = ["q", "h"]
+
+        if self.checkSongUpdate() == 1:
+            stopped = True
+        else:
+            stopped = False
+
+        # Get key
+        key = self.stdscr.getch()
+
+        while key > 0:
+            # Resolve every key in buffer
+            keyChar = chr(key).lower()
+
+            if stopped and keyChar not in anytime_keys:
+                key = self.stdscr.getch()
+                continue
+
+            if keyChar == ">":
+                self.client.next()
+
+            elif keyChar == "<":
+                self.client.previous()
+
+            elif keyChar == "p":
+                self.client.pause()
+
+            elif keyChar == "+":
+                self.client.volume("5")
+
+            elif keyChar == "-":
+                self.client.volume("-5")
+
+            elif keyChar == "q":
+                raise KeyboardInterrupt
+
+            elif keyChar == "h":
+                self.help = not self.help
+                self.cleared = False
+
+            key = self.stdscr.getch()
+
+    def drawInfo(self):
+        """
+        A function to draw the info below the album art
+        """
+        state, album, artist, title = self.fitText()
+        if state == 0:
+            # Everything fits
+            self.win.addstr(self.text_start,     0, f"{title}")
+            self.win.addstr(self.text_start + 1, 0, f"{artist} - {album}")
+
+        elif state == 1:
+            # Too wide
+            self.win.addstr(self.text_start - 1, 0, f"{title}")
+            self.win.addstr(self.text_start,     0, f"{album}")
+            self.win.addstr(self.text_start + 1, 0, f"{artist}")
+
+        else:
+            # No album
+            self.win.addstr(self.text_start,     0, f"{title}")
+            self.win.addstr(self.text_start + 1, 0, f"{artist}")
+
+
+        # Progress bar
+        song_duration = (int(self.duration / 60), round(self.duration % 60))
+        song_elapsed  = (int(self.elapsed / 60),  round(self.elapsed % 60))
+
+        self.win.addstr(
+            self.text_start + 2, 0,
+            "-"*(int((self.window_width - 1) * self.progress)) + ">",
+            curses.color_pair(1)
+        )
+
+        # Duration string
+        time_string = f"{song_elapsed[0]}:{song_elapsed[1]:02d}/{song_duration[0]}:{song_duration[1]:02d}"
+
+        self.win.addstr(
+            self.text_start + 3, 0,
+            f"{time_string:>{self.window_width}}",
+            curses.color_pair(2)
+        )
+
+        self.win.refresh()
+
+
+    def drawAlbumArt(self):
+        """
+        A function to draw the album art
+        """
+        (
+            pixcat.Image(self.album_art_loc)
+            .thumbnail(self.image_width_px )
+            .show(x=(self.window_width - self.image_width)//2, y=self.image_y_pos)
+        )
+
+
+    def centerText(self, y: int, string: str):
+        """
+        A function that draws centered text in the window
+        given a string and a line.
+
+        Arguments:
+            y      -- The y position to draw the string
+            string -- The string to draw
+        """
+
+        x_pos = self.window_width / 2 - len(string) / 2
+        self.win.addstr(y, int(x_pos), string)
+
+
+    def drawHelp(self):
+        """
+        The function that draws the keymap help
+        """
+
+        # Top vspace
+        top_vspace = 3
+
+        # Left and right margin pct
+        lr_margin_pct = 0.1
+        lr_margin = round(self.window_width * lr_margin_pct)
+
+        # Actual space for text
+        x_space = self.window_width - 2 * (lr_margin)
+
+        # Keymap
+        keymap = {">": "Next track",
+                  "<": "Last track",
+                  "+": "Volume +5",
+                  "-": "Volume -5",
+                  "p": "Play/pause",
+                  "q": "Quit",
+                  "h": "Help"
+                 }
+
+        # Check if window has been cleared
+        if not self.cleared:
+            self.win.clear()
+            self.cleared = True
+
+        # Figure out center, y_start and x_start
+        center_y, center_x = (self.window_height // 2, self.window_width // 2)
+        y_start = top_vspace
+        x_start = int(lr_margin)
+
+        # Draw title
+        self.centerText(y_start, "Keymap")
+
+        # Draw help
+        for key, desc in keymap.items():
+            y_start += 1
+            sep = "." * (x_space - len(key) - len(desc) - 2)
+            self.win.addstr(y_start, x_start, f"{key} {sep} {desc}")
+
+        self.win.refresh()
+
+
+    def draw(self):
+        """
+        The function that draws the now playing window
+        """
+        if not self.cleared:
+            self.win.clear()
+            self.cleared = True
+
+        # Force window nings
+        self.win.redrawln(0, 1)
+        self.win.addstr(0, 0, " ")
+
+        # Get mpd state
+        state = self.checkSongUpdate()
+
+        # Check if state is stop
+        if state == 1:
+            self.win.clear()
+            infomsg = "Put some beats on!"
+
+            self.win.addstr(self.window_height // 2, (self.window_width - len(infomsg)) // 2, infomsg)
+            self.win.refresh()
+
+            return
+
+        # Draw the window
+        self.drawInfo()
+        self.drawAlbumArt()
+
+
+    def loop(self):
+        try:
+            i = 0
+            while True:
+                s = time.perf_counter()
+
+                self.handleKeypress()
+                if i == 0:
+                    # Checko for window size update
+                    self.updateWindowSize()
+
+                    if not self.help:
+                        self.draw()
+
+                    else:
+                        self.drawHelp()
+
+                e = time.perf_counter()
+
+                sleeptime = abs(0.1 - (e-s))
+
+                time.sleep(sleeptime)
+                i = (i + 1) % 10
+
+        except KeyboardInterrupt:
+            error = False
+        except pixcat.terminal.KittyAnswerTimeout:
+            error = "Kitty did not answer in time. Are you using Kitty?"
+        finally:
+            curses.nocbreak()
+            curses.endwin()
+            self.client.close()
+            self.client.disconnect()
+            if error:
+                print(error)
+
+
+player = Player()
+player.loop()
+
