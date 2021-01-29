@@ -10,7 +10,7 @@ setup(name="miniplayer",
       scripts=["bin/miniplayer"],
       install_requires=[
           "python-mpd2",
-          "ffmpeg",
+          "ffmpeg-python",
           "pixcat",
           "pillow"
       ])
