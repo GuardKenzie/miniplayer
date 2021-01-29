@@ -2,18 +2,33 @@
 import curses
 import os
 from mpd import MPDClient
+import mpd
 import ffmpeg
 import pixcat
 import time
+import configparser
 from PIL import Image, ImageDraw
 
+# Get config
+config = configparser.ConfigParser()
+config.read(os.path.expanduser("~/.config/miniplayer/config"))
+
+if "player" not in config.sections():
+    config["player"] = {"music_directory": "~/Music",
+                        "font_width":      11,
+                        "font_height":     24
+                        }
+
+playerconfig = config["player"]
 
 # Image ratio
 # Change this to match the (width, height) of your font.
-IMAGERATIO = (11, 24)
+IMAGERATIO = (playerconfig.getint("font_width", 11),
+              playerconfig.getint("font_height", 24)
+              )
 
 # Music directory
-MUSICDIR = "~/Music"
+MUSICDIR = playerconfig.get("music_directory", "~/Music")
 MUSICDIR = os.path.expanduser(MUSICDIR)
 
 
@@ -139,6 +154,7 @@ class Player:
         A function that extracts the album art from song_file and
         saves it to self.album_art_loc
         """
+
         song_file_abs = os.path.join(MUSICDIR, song_file)
 
         process = (
@@ -146,6 +162,7 @@ class Player:
                 .input(song_file_abs)
                 .output(self.album_art_loc)
         )
+
         try:
             process.run(quiet=True, overwrite_output=True)
         except ffmpeg._run.Error:
