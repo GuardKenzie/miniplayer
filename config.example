@@ -1,4 +1,4 @@
 [player]
-music_directory = "~/Music"
+music_directory = ~/Music
 font_width = 11
 font_height = 24
