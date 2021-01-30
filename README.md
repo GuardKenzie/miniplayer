@@ -2,6 +2,8 @@
 
 A curses based mpd client with basic functionality and album art written for the Kitty terminal.
 
+After installation, the player can be opened from Kitty with `miniplayer`.
+
 ## Configuration
 
 The config file is located at `~/.config/miniplayer/config`. The example configuration file, `config.example`, has all the default values.
