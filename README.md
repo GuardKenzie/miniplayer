@@ -27,7 +27,9 @@ The config file is located at `~/.config/miniplayer/config`. The example configu
 * ***music_directory*:** The path to your music directory for extracting album art.
 * ***font_width*:** The width of your font in pixels in the actual terminal.
 * ***font_height*:** The height of your font in pixels in the actual terminal.
+
     ![font-example](https://github.com/GuardKenzie/miniplayer/blob/main/img/font.png?raw=true)
+
 * ***image_method*:** The method to use for drawing album art. Available values are `pixcat` and `ueberzug`
     If you are not using Kitty, try `ueberzug`.
 
