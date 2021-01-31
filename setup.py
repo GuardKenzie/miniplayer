@@ -4,8 +4,8 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(name="miniplayer",
-      version="1.0.1",
-      description="An mpd client with album art and basic functionality written for use with the kitty terminal.",
+      version="1.1",
+      description="An mpd client with album art and basic functionality.",
       long_description=long_description,
       long_description_content_type="text/markdown",
       url="https://github.com/GuardKenzie/miniplayer",
@@ -17,6 +17,7 @@ setup(name="miniplayer",
           "python-mpd2",
           "ffmpeg-python",
           "pixcat",
-          "pillow"
+          "pillow",
+          "ueberzug"
       ])
 
