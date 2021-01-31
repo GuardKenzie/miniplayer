@@ -33,6 +33,7 @@ The config file is located at `~/.config/miniplayer/config`. The example configu
 * ***image_method*:** The method to use for drawing album art. Available values are `pixcat` and `ueberzug`
     If you are not using Kitty, try `ueberzug`.
 
+
 #### mpd
 * ***host*:** The mpd host
 * ***port*:** The mpd port
@@ -49,3 +50,12 @@ The config file is located at `~/.config/miniplayer/config`. The example configu
 | q   | Quit          |
 | +   | Volume +5     |
 | -   | Volume -5     |
+
+    
+## F.A.Q.
+1. **Q:** Album art is not showing up.  
+**A:** Make sure your `music_directory` is not quoted i.e. if your music directory is `~/My Music` then your config should look like `music_directory = ~/My Music`.  
+If this does not work, try changing `image_method` from `pixcat` to `ueberzug` or vice versa.
+
+2. **Q:** Album art is too big/too small.  
+**A:** You need to configure `font_height` and `font_width`. Their values should be the actual pixel height and width of a character in your terminal.
