@@ -2,3 +2,7 @@
 music_directory = ~/Music
 font_width = 11
 font_height = 24
+
+[mpd]
+host = localhost
+port = 6600
