@@ -2,7 +2,7 @@
 
 A curses based mpd client with basic functionality and album art.
 
-![player-preview](https://github.com/GuardKenzie/miniplayer/img/preview.png?raw=true)
+![player-preview](https://github.com/GuardKenzie/miniplayer/blob/main/img/preview.png?raw=true)
 
 After installation, the player can be opened from the terminal with `miniplayer`.
 
