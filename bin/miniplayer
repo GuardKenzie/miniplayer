@@ -7,6 +7,7 @@ import ffmpeg
 import pixcat
 import time
 import configparser
+import ueberzug.lib.v0 as ueberzug
 from PIL import Image, ImageDraw
 
 # Get config
@@ -16,7 +17,8 @@ config.read(os.path.expanduser("~/.config/miniplayer/config"))
 if "player" not in config.sections():
     config["player"] = {"music_directory": "~/Music",
                         "font_width":      11,
-                        "font_height":     24
+                        "font_height":     24,
+                        "image_method":    "pixcat"
                         }
 
 if "mpd" not in config.sections():
@@ -40,6 +42,9 @@ MUSICDIR = os.path.expanduser(MUSICDIR)
 # MPD config
 MPDHOST = mpd_config.get("host", "localhost")
 MPDPORT = mpd_config.getint("port", 6600)
+
+# What to use to draw images
+IMAGEMETHOD = player_config.get("image_method", "pixcat")
 
 
 def albumArtSize(album_space, window_width):
@@ -98,6 +103,9 @@ class Player:
         # Toggle for help menu
         self.help = False
         self.cleared = False
+
+        # Ueberzug placement
+        self.art_placement = None
 
 
     def fitText(self):
@@ -344,15 +352,40 @@ class Player:
         self.win.refresh()
 
 
+    def hideAlbumArt(self):
+        """
+        A function that hides the album art
+        """
+        if IMAGEMETHOD == "ueberzug":
+                self.art_placement.visibility = ueberzug.Visibility.INVISIBLE
+
+
     def drawAlbumArt(self):
         """
         A function to draw the album art
         """
-        (
-            pixcat.Image(self.album_art_loc)
-            .thumbnail(self.image_width_px )
-            .show(x=(self.window_width - self.image_width)//2, y=self.image_y_pos)
-        )
+
+        if IMAGEMETHOD == "ueberzug":
+            # Figure out new placement
+            self.art_placement.x = (self.window_width - self.image_width)//2
+            self.art_placement.y = self.image_y_pos
+
+            # Figure out height and width
+            self.art_placement.width = self.image_width
+            self.art_placement.height = self.album_space
+
+            # Update image
+            self.art_placement.path = self.album_art_loc
+
+            # Display image
+            self.art_placement.visibility = ueberzug.Visibility.VISIBLE
+
+        elif IMAGEMETHOD == "pixcat":
+            (
+                pixcat.Image(self.album_art_loc)
+                .thumbnail(self.image_width_px )
+                .show(x=(self.window_width - self.image_width)//2, y=self.image_y_pos)
+            )
 
 
     def centerText(self, y: int, string: str):
@@ -434,6 +467,8 @@ class Player:
         # Check if state is stop
         if state == 1:
             self.win.clear()
+            self.hideAlbumArt()
+
             infomsg = "Put some beats on!"
 
             self.win.addstr(self.window_height // 2, (self.window_width - len(infomsg)) // 2, infomsg)
@@ -446,7 +481,19 @@ class Player:
         self.drawAlbumArt()
 
 
-    def loop(self):
+    @ueberzug.Canvas()
+    def loop(self, canvas):
+        """
+        The main program loop
+        """
+
+        if self.art_placement is None and IMAGEMETHOD == "ueberzug":
+            # Create album art placement if we are using ueberzug
+            self.art_placement = canvas.create_placement(
+                "art",
+                scaler=ueberzug.ScalerOption.FIT_CONTAIN.value
+            )
+
         try:
             i = 0
             while True:
@@ -461,6 +508,7 @@ class Player:
                         self.draw()
 
                     else:
+                        self.hideAlbumArt()
                         self.drawHelp()
 
                 e = time.perf_counter()
@@ -483,6 +531,13 @@ class Player:
                 print(error)
 
 
-player = Player()
-player.loop()
+try:
+    player = Player()
+    player.loop()
+except ConnectionRefusedError:
+    curses.nocbreak()
+    curses.endwin()
+    print(f"Could not connect to mpd on {MPDHOST}:{MPDPORT}")
+
+
 
