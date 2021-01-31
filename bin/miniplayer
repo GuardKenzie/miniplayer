@@ -19,17 +19,27 @@ if "player" not in config.sections():
                         "font_height":     24
                         }
 
-playerconfig = config["player"]
+if "mpd" not in config.sections():
+    config["mpd"] = {"host": "localhost",
+                     "port": "6600"
+                     }
+
+player_config = config["player"]
+mpd_config = config["mpd"]
 
 # Image ratio
 # Change this to match the (width, height) of your font.
-IMAGERATIO = (playerconfig.getint("font_width", 11),
-              playerconfig.getint("font_height", 24)
+IMAGERATIO = (player_config.getint("font_width", 11),
+              player_config.getint("font_height", 24)
               )
 
 # Music directory
-MUSICDIR = playerconfig.get("music_directory", "~/Music")
+MUSICDIR = player_config.get("music_directory", "~/Music")
 MUSICDIR = os.path.expanduser(MUSICDIR)
+
+# MPD config
+MPDHOST = mpd_config.get("host", "localhost")
+MPDPORT = mpd_config.getint("port", 6600)
 
 
 def albumArtSize(album_space, window_width):
@@ -67,7 +77,7 @@ class Player:
 
         # MPD init
         self.client = MPDClient()
-        self.client.connect("localhost", 6600)
+        self.client.connect(MPDHOST, MPDPORT)
 
         self.last_song = None
 
