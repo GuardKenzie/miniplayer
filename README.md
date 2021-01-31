@@ -8,9 +8,14 @@ After installation, the player can be opened from Kitty with `miniplayer`.
 
 The config file is located at `~/.config/miniplayer/config`. The example configuration file, `config.example`, has all the default values.
 
+#### player
 * ***music_directory*:** The path to your music directory for extracting album art.
 * ***font_width*:** The width of your font in pixels in the actual terminal.
 * ***font_height*:** The height of your font in pixels in the actual terminal.
+
+#### mpd
+* ***host*:** The mpd host
+* ***port*:** The mpd port
 
 ![font-example](https://github.com/GuardKenzie/miniplayer/blob/main/img/font.png?raw=true)
 
