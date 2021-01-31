@@ -1,8 +1,10 @@
 # Miniplayer
 
-A curses based mpd client with basic functionality and album art written for the Kitty terminal.
+A curses based mpd client with basic functionality and album art.
 
-After installation, the player can be opened from Kitty with `miniplayer`.
+![player-preview](https://github.com/GuardKenzie/miniplayer/img/preview.png?raw=true)
+
+After installation, the player can be opened from the terminal with `miniplayer`.
 
 ## Installation
 
@@ -25,12 +27,14 @@ The config file is located at `~/.config/miniplayer/config`. The example configu
 * ***music_directory*:** The path to your music directory for extracting album art.
 * ***font_width*:** The width of your font in pixels in the actual terminal.
 * ***font_height*:** The height of your font in pixels in the actual terminal.
+    ![font-example](https://github.com/GuardKenzie/miniplayer/blob/main/img/font.png?raw=true)
+* ***image_method*:** The method to use for drawing album art. Available values are `pixcat` and `ueberzug`
+    If you are not using Kitty, try `ueberzug`.
 
 #### mpd
 * ***host*:** The mpd host
 * ***port*:** The mpd port
 
-![font-example](https://github.com/GuardKenzie/miniplayer/blob/main/img/font.png?raw=true)
 
 ## Keybinds
 
