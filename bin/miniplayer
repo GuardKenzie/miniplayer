@@ -238,8 +238,19 @@ class Player:
             except KeyError:
                 self.album = ""
 
-            self.artist = song["artist"]
-            self.title = song["title"]
+            try:
+                self.artist = song["artist"]
+            except KeyError:
+                self.artist = ""
+
+            try:
+                self.title = song["title"]
+            except KeyError:
+                # If no title, use base file name
+                aux = song["file"]
+                aux = os.path.basename(aux)
+                aux = os.path.splitext(aux)[0]
+                self.title = aux
 
             self.last_song = song
 
@@ -313,10 +324,16 @@ class Player:
         A function to draw the info below the album art
         """
         state, album, artist, title = self.fitText()
+
+        if len(self.artist) == 0:
+            seperator = ""
+        else:
+            seperator = " - "
+
         if state == 0:
             # Everything fits
             self.win.addstr(self.text_start,     0, f"{title}")
-            self.win.addstr(self.text_start + 1, 0, f"{artist} - {album}")
+            self.win.addstr(self.text_start + 1, 0, f"{artist}{seperator}{album}")
 
         elif state == 1:
             # Too wide
