@@ -21,7 +21,7 @@ pip install miniplayer
 
 ## Configuration
 
-The config file is located at `~/.config/miniplayer/config`. The example configuration file, `config.example`, has all the default values.
+The config file is located at `~/.config/miniplayer/config`. The example configuration file, `config.example`, has all the default values. You will need to create the file yourself.
 
 #### player
 * ***music_directory*:** The path to your music directory for extracting album art.
