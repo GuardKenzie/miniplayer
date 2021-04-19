@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(name="miniplayer",
-      version="1.1.1",
+      version="1.1.2",
       description="An mpd client with album art and basic functionality.",
       long_description=long_description,
       long_description_content_type="text/markdown",
