@@ -29,6 +29,9 @@ if "mpd" not in config.sections():
 player_config = config["player"]
 mpd_config = config["mpd"]
 
+# FPS
+FPS = 20
+
 # Image ratio
 # Change this to match the (width, height) of your font.
 IMAGERATIO = (player_config.getint("font_width", 11),
@@ -106,6 +109,9 @@ class Player:
 
         # Ueberzug placement
         self.art_placement = None
+
+        # Update needed flag
+        self.update_needed = False
 
 
     def fitText(self):
@@ -297,9 +303,11 @@ class Player:
 
             if keyChar == ">":
                 self.client.next()
+                self.update_needed = True
 
             elif keyChar == "<":
                 self.client.previous()
+                self.update_needed = True
 
             elif keyChar == "p":
                 self.client.pause()
@@ -316,6 +324,7 @@ class Player:
             elif keyChar == "h":
                 self.help = not self.help
                 self.cleared = False
+                self.update_needed = True
 
             key = self.stdscr.getch()
 
@@ -517,7 +526,7 @@ class Player:
                 s = time.perf_counter()
 
                 self.handleKeypress()
-                if i == 0:
+                if i == 0 or self.update_needed:
                     # Checko for window size update
                     self.updateWindowSize()
 
@@ -528,12 +537,14 @@ class Player:
                         self.hideAlbumArt()
                         self.drawHelp()
 
+                    self.update_needed = False
+
                 e = time.perf_counter()
 
-                sleeptime = abs(0.1 - (e-s))
+                sleeptime = abs(1/FPS - (e-s))
 
                 time.sleep(sleeptime)
-                i = (i + 1) % 10
+                i = (i + 1) % FPS
 
         except KeyboardInterrupt:
             error = False
