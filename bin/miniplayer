@@ -24,7 +24,8 @@ if "player" not in config.sections():
 
 if "mpd" not in config.sections():
     config["mpd"] = {"host": "localhost",
-                     "port": "6600"
+                     "port": "6600",
+                     "pass": False
                      }
 
 # Initialise keybindings
@@ -72,6 +73,7 @@ MUSICDIR = os.path.expanduser(MUSICDIR)
 # MPD config
 MPDHOST = mpd_config.get("host", "localhost")
 MPDPORT = mpd_config.getint("port", 6600)
+MPDPASS = mpd_config.get("pass", False)
 
 # What to use to draw images
 IMAGEMETHOD = player_config.get("image_method", "pixcat")
@@ -116,6 +118,8 @@ class Player:
         # MPD init
         self.client = MPDClient()
         self.client.connect(MPDHOST, MPDPORT)
+        if MPDPASS:
+            self.client.password(MPDPASS)
 
         self.last_song = None
 
