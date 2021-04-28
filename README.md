@@ -37,6 +37,7 @@ The config file is located at `~/.config/miniplayer/config`. The example configu
 #### mpd
 * ***host*:** The mpd host
 * ***port*:** The mpd port
+* ***pass*:** The mpd password
 
 
 ## Keybinds
