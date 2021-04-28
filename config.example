@@ -3,6 +3,7 @@ music_directory = ~/Music
 font_width = 11
 font_height = 24
 image_method = pixcat
+volume_step = 5
 
 [mpd]
 host = localhost

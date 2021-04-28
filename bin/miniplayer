@@ -18,7 +18,8 @@ if "player" not in config.sections():
     config["player"] = {"music_directory": "~/Music",
                         "font_width":      11,
                         "font_height":     24,
-                        "image_method":    "pixcat"
+                        "image_method":    "pixcat",
+                        "volume_step":     5
                         }
 
 if "mpd" not in config.sections():
@@ -74,6 +75,9 @@ MPDPORT = mpd_config.getint("port", 6600)
 
 # What to use to draw images
 IMAGEMETHOD = player_config.get("image_method", "pixcat")
+
+# Volume step
+VOLUMESTEP = player_config.getint("volume_step", 5)
 
 
 def albumArtSize(album_space, window_width):
@@ -347,10 +351,10 @@ class Player:
                 self.client.pause()
 
             elif action == "volume_up":
-                self.client.volume("5")
+                self.client.volume(str(VOLUMESTEP))
 
             elif action == "volume_down":
-                self.client.volume("-5")
+                self.client.volume(str(-VOLUMESTEP))
 
             elif action == "quit":
                 raise KeyboardInterrupt
