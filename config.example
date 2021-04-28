@@ -7,3 +7,4 @@ image_method = pixcat
 [mpd]
 host = localhost
 port = 6600
+# pass = example
