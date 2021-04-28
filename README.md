@@ -32,6 +32,7 @@ The config file is located at `~/.config/miniplayer/config`. The example configu
 
 * ***image_method*:** The method to use for drawing album art. Available values are `pixcat` and `ueberzug`
     If you are not using Kitty, try `ueberzug`.
+* ***volume_step*:** The ammount (in percents) the volume will be adjusted on pressing the volume up and volume down keys.
 
 
 #### mpd
@@ -40,7 +41,18 @@ The config file is located at `~/.config/miniplayer/config`. The example configu
 * ***pass*:** The mpd password
 
 
-## Keybinds
+#### keybinds
+This section allows you to change the keybinds for the player. The format for a keybind is `key = action` (for example `p = play_pause`). Available actions are
+* `play_pause`
+* `next_track`
+* `last_track`
+* `volume_down`
+* `volume_up`
+* `help`
+* `quit`
+
+
+## Default keybinds
 
 | Key | function      |
 |-----|---------------|
@@ -49,8 +61,10 @@ The config file is located at `~/.config/miniplayer/config`. The example configu
 | >   | Next track    |
 | <   | Last track    |
 | q   | Quit          |
-| +   | Volume +5     |
-| -   | Volume -5     |
+| +   | Volume up     |
+| -   | Volume down     |
+
+These keybinds can be changed by editing the config file. See the [`config.example`](config.example) file for the format.
 
     
 ## F.A.Q.
