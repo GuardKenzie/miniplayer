@@ -7,3 +7,12 @@ image_method = pixcat
 [mpd]
 host = localhost
 port = 6600
+
+# [keybindings]
+# > = next_track
+# < = last_track
+# + = volume_up
+# - = volume_down
+# p = play_pause
+# q = quit
+# h = help

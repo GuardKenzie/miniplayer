@@ -26,8 +26,34 @@ if "mpd" not in config.sections():
                      "port": "6600"
                      }
 
+# Initialise keybindings
+default_bindings = {">": "next_track",
+                    "<": "last_track",
+                    "+": "volume_up",
+                    "-": "volume_down",
+                    "p": "play_pause",
+                    "q": "quit",
+                    "h": "help"
+                    }
+
+if "keybindings" not in config.sections():
+    config["keybindings"] = default_bindings
+
+# Load configured keybindings
+keybindings = config["keybindings"]
+
+# Unbound actions get initialised with their default keys
+# except if the keys are being used for something else
+for key, action in default_bindings.items():
+    if (
+            action not in keybindings.values()
+            and key not in keybindings.keys()
+    ):
+        keybindings[key] = action
+
 player_config = config["player"]
 mpd_config = config["mpd"]
+
 
 # FPS
 FPS = 20
@@ -283,7 +309,7 @@ class Player:
             'h' -- Help
         """
 
-        anytime_keys = ["q", "h"]
+        anytime_keys = ["quit", "help"]
 
         if self.checkSongUpdate() == 1:
             stopped = True
@@ -297,31 +323,39 @@ class Player:
             # Resolve every key in buffer
             keyChar = chr(key).lower()
 
-            if stopped and keyChar not in anytime_keys:
+            # Parse key
+            if keyChar not in keybindings.keys():
+                key = self.stdscr.getch()
+                continue
+            else:
+                action = keybindings[keyChar]
+
+
+            if stopped and action not in anytime_keys:
                 key = self.stdscr.getch()
                 continue
 
-            if keyChar == ">":
+            if action == "next_track":
                 self.client.next()
                 self.update_needed = True
 
-            elif keyChar == "<":
+            elif action == "last_track":
                 self.client.previous()
                 self.update_needed = True
 
-            elif keyChar == "p":
+            elif action == "play_pause":
                 self.client.pause()
 
-            elif keyChar == "+":
+            elif action == "volume_up":
                 self.client.volume("5")
 
-            elif keyChar == "-":
+            elif action == "volume_down":
                 self.client.volume("-5")
 
-            elif keyChar == "q":
+            elif action == "quit":
                 raise KeyboardInterrupt
 
-            elif keyChar == "h":
+            elif action == "help":
                 self.help = not self.help
                 self.cleared = False
                 self.update_needed = True
