@@ -20,7 +20,8 @@ if "player" not in config.sections():
                         "font_height":     24,
                         "image_method":    "pixcat",
                         "album_art_only":  False,
-                        "volume_step":     5
+                        "volume_step":     5,
+                        "auto_close":      False
                         }
 
 if "mpd" not in config.sections():
@@ -82,6 +83,9 @@ IMAGEMETHOD = player_config.get("image_method", "pixcat")
 
 # Volume step
 VOLUMESTEP = player_config.getint("volume_step", 5)
+
+# Autoclose boolean
+AUTOCLOSE = player_config.getboolean("auto_close", False)
 
 
 def albumArtSize(album_space, window_width):
@@ -151,6 +155,9 @@ class Player:
 
         # Album art only flag
         self.album_art_only = player_config.getboolean("album_art_only", False)
+
+        # Flag to check if any music has been played
+        self.has_music_been_played = False
 
 
     def fitText(self):
@@ -317,6 +324,7 @@ class Player:
         """
         A function that toggles the display of track info
         """
+
         self.album_art_only = not self.album_art_only
         self.win.clear()
         self.updateWindowSize(force_update=True)
@@ -549,6 +557,10 @@ class Player:
 
         # Check if state is stop
         if state == 1:
+            if self.has_music_been_played and AUTOCLOSE:
+                # Check if the playlist has concluded and if we should close
+                raise KeyboardInterrupt
+
             self.win.clear()
             self.hideAlbumArt()
 
@@ -558,6 +570,8 @@ class Player:
             self.win.refresh()
 
             return
+
+        self.has_music_been_played = True
 
         # Draw the window
         if not self.album_art_only:
