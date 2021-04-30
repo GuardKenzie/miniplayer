@@ -34,6 +34,7 @@ The config file is located at `~/.config/miniplayer/config`. The example configu
     If you are not using Kitty, try `ueberzug`.
 * ***volume_step*:** The ammount (in percents) the volume will be adjusted on pressing the volume up and volume down keys.
 * ***album_art_only*:** Weather or not to only draw the album art and no other track info (`true/false`).
+* ***auto_close*:** Weather or not to automatically close the player once the mpd playlist has concluded (`true/false`).
 
 
 #### mpd
