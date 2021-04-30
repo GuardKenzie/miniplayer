@@ -33,6 +33,7 @@ The config file is located at `~/.config/miniplayer/config`. The example configu
 * ***image_method*:** The method to use for drawing album art. Available values are `pixcat` and `ueberzug`
     If you are not using Kitty, try `ueberzug`.
 * ***volume_step*:** The ammount (in percents) the volume will be adjusted on pressing the volume up and volume down keys.
+* ***album_art_only*:** Weather or not to only draw the album art and no other track info (`true/false`).
 
 
 #### mpd
@@ -48,6 +49,7 @@ This section allows you to change the keybinds for the player. The format for a 
 * `last_track`
 * `volume_down`
 * `volume_up`
+* `toggle_info`
 * `help`
 * `quit`
 
@@ -62,7 +64,8 @@ This section allows you to change the keybinds for the player. The format for a 
 | <   | Last track    |
 | q   | Quit          |
 | +   | Volume up     |
-| -   | Volume down     |
+| -   | Volume down   |
+| i   | Toggle info   |
 
 These keybinds can be changed by editing the config file. See the [`config.example`](config.example) file for the format.
 
