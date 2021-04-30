@@ -20,3 +20,4 @@ port = 6600
 # p = play_pause
 # q = quit
 # h = help
+# i = toggle_info
