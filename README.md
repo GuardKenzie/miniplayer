@@ -41,7 +41,7 @@ The config file is located at `~/.config/miniplayer/config`. The example configu
 * ***pass*:** The mpd password
 
 
-#### keybinds
+#### keybindings
 This section allows you to change the keybinds for the player. The format for a keybind is `key = action` (for example `p = play_pause`). Available actions are
 * `play_pause`
 * `next_track`
