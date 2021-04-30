@@ -19,6 +19,7 @@ if "player" not in config.sections():
                         "font_width":      11,
                         "font_height":     24,
                         "image_method":    "pixcat",
+                        "album_art_only":  False,
                         "volume_step":     5
                         }
 
@@ -35,7 +36,8 @@ default_bindings = {">": "next_track",
                     "-": "volume_down",
                     "p": "play_pause",
                     "q": "quit",
-                    "h": "help"
+                    "h": "help",
+                    "i": "toggle_info"
                     }
 
 if "keybindings" not in config.sections():
@@ -147,6 +149,9 @@ class Player:
         # Update needed flag
         self.update_needed = False
 
+        # Album art only flag
+        self.album_art_only = player_config.getboolean("album_art_only", False)
+
 
     def fitText(self):
         """
@@ -183,20 +188,25 @@ class Player:
         return (state, album, artist, song)
 
 
-    def updateWindowSize(self):
+    def updateWindowSize(self, force_update=False):
         """
         A function to check if the window size changed
         """
         new_height, new_width = self.stdscr.getmaxyx()
 
-        if (new_height, new_width) != (self.window_height, self.window_width):
+        if (new_height, new_width) != (self.window_height, self.window_width) or force_update:
             self.win.clear()
 
             # Curses window
             self.window_height, self.window_width = self.stdscr.getmaxyx()
 
-            self.text_start = int(self.window_height - 5)
-            self.album_space = self.text_start - 2
+            # Check if we are drawing info
+            if self.album_art_only:
+                self.text_start = int(self.window_height)
+                self.album_space = self.text_start - 1
+            else:
+                self.text_start = int(self.window_height - 5)
+                self.album_space = self.text_start - 2
 
             # Calculate the size of the image
             self.image_width_px, self.image_width, self.image_height = albumArtSize(self.album_space, self.window_width)
@@ -303,6 +313,16 @@ class Player:
             return 2
 
 
+    def toggleInfo(self):
+        """
+        A function that toggles the display of track info
+        """
+        self.album_art_only = not self.album_art_only
+        self.win.clear()
+        self.updateWindowSize(force_update=True)
+        self.win.refresh()
+
+
     def handleKeypress(self):
         """
         A function to handle keypresses
@@ -366,6 +386,10 @@ class Player:
             elif action == "help":
                 self.help = not self.help
                 self.cleared = False
+                self.update_needed = True
+
+            elif action == "toggle_info":
+                self.toggleInfo()
                 self.update_needed = True
 
             key = self.stdscr.getch()
@@ -536,7 +560,9 @@ class Player:
             return
 
         # Draw the window
-        self.drawInfo()
+        if not self.album_art_only:
+            self.drawInfo()
+
         self.drawAlbumArt()
 
 
@@ -552,6 +578,11 @@ class Player:
                 "art",
                 scaler=ueberzug.ScalerOption.FIT_CONTAIN.value
             )
+
+        # Check if we need to recalculate window size
+        # because of album art only initially
+        if self.album_art_only:
+            self.updateWindowSize(force_update=True)
 
         try:
             i = 0
