@@ -485,16 +485,6 @@ class Player:
         # Actual space for text
         x_space = self.window_width - 2 * (lr_margin)
 
-        # Keymap
-        keymap = {">": "Next track",
-                  "<": "Last track",
-                  "+": "Volume +5",
-                  "-": "Volume -5",
-                  "p": "Play/pause",
-                  "q": "Quit",
-                  "h": "Help"
-                 }
-
         # Check if window has been cleared
         if not self.cleared:
             self.win.clear()
@@ -509,9 +499,10 @@ class Player:
         self.centerText(y_start, "Keymap")
 
         # Draw help
-        for key, desc in keymap.items():
+        for key, desc in keybindings.items():
             y_start += 1
             sep = "." * (x_space - len(key) - len(desc) - 2)
+            desc = desc.replace("_", " ").capitalize()
             self.win.addstr(y_start, x_start, f"{key} {sep} {desc}")
 
         self.win.refresh()
