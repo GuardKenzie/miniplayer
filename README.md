@@ -35,6 +35,7 @@ The config file is located at `~/.config/miniplayer/config`. The example configu
 * ***volume_step*:** The ammount (in percents) the volume will be adjusted on pressing the volume up and volume down keys.
 * ***album_art_only*:** Whether or not to only draw the album art and no other track info (`true/false`).
 * ***auto_close*:** Whether or not to automatically close the player once the mpd playlist has concluded (`true/false`).
+* ***show_playlist*:** Whether or not to show the playlist view.
 
 
 #### mpd
@@ -78,3 +79,8 @@ If this does not work, try changing `image_method` from `pixcat` to `ueberzug` o
 
 2. **Q:** Album art is too big/too small.  
 **A:** You need to configure `font_height` and `font_width`. Their values should be the actual pixel height and width of a character in your terminal.
+
+
+## More screenshots!
+
+![playlist](img/playlist.png)
