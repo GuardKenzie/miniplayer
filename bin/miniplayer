@@ -2,7 +2,6 @@
 import curses
 import os
 from mpd import MPDClient
-import mpd
 import ffmpeg
 import pixcat
 import time
@@ -130,7 +129,6 @@ def albumArtWinWidth(height, width):
         return height, width
 
 
-
 class Player:
     def __init__(self):
         # Curses initialisation
@@ -251,10 +249,7 @@ class Player:
 
         if (window_height, window_width) != (self.screen_height, self.screen_width) or force_update:
 
-            if drawPlaylist(window_height, window_width) and not self.album_art_only:
-                self.draw_playlist = True
-            else:
-                self.draw_playlist = False
+            self.draw_playlist = drawPlaylist(window_height, window_width) and not self.album_art_only
 
             # Album art window
             self.art_window_height, self.art_window_width = albumArtWinWidth(window_height, window_width)
@@ -266,8 +261,8 @@ class Player:
 
             # Close the playlist window if it exists
             elif self.playlist_win is not None:
-                    del self.playlist_win
-                    self.playlist_win = None
+                del self.playlist_win
+                self.playlist_win = None
 
             # Check if we are drawing info
             if self.album_art_only:
@@ -345,11 +340,10 @@ class Player:
 
                 externalyx = [(x0, y0), (x1, y1)]
 
-                d.rectangle(externalyx, outline=foregroundCol, width=40)# fill=foregroundCol)
-            # d.ellipse(internalxy, fill=backgroundCol)
+                d.rectangle(externalyx, outline=foregroundCol, width=40)
+
             art.resize((512, 512))
             art.save(self.album_art_loc, "PNG")
-
 
 
     def checkSongUpdate(self):
@@ -584,7 +578,7 @@ class Player:
         A function that hides the album art
         """
         if IMAGEMETHOD == "ueberzug":
-                self.art_placement.visibility = ueberzug.Visibility.INVISIBLE
+            self.art_placement.visibility = ueberzug.Visibility.INVISIBLE
 
 
     def drawAlbumArt(self):
@@ -610,7 +604,7 @@ class Player:
         elif IMAGEMETHOD == "pixcat":
             (
                 pixcat.Image(self.album_art_loc)
-                .thumbnail(self.image_width_px )
+                .thumbnail(self.image_width_px)
                 .show(x=(self.art_window_width - self.image_width)//2, y=self.image_y_pos)
             )
 
@@ -650,7 +644,6 @@ class Player:
             self.cleared = True
 
         # Figure out center, y_start and x_start
-        center_y, center_x = (self.art_window_height // 2, self.art_window_width // 2)
         y_start = top_vspace
         x_start = int(lr_margin)
 
@@ -771,6 +764,3 @@ except ConnectionRefusedError:
     curses.nocbreak()
     curses.endwin()
     print(f"Could not connect to mpd on {MPDHOST}:{MPDPORT}")
-
-
-
