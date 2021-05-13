@@ -35,6 +35,7 @@ The config file is located at `~/.config/miniplayer/config`. The example configu
 * ***volume_step*:** The ammount (in percents) the volume will be adjusted on pressing the volume up and volume down keys.
 * ***album_art_only*:** Whether or not to only draw the album art and no other track info (`true/false`).
 * ***auto_close*:** Whether or not to automatically close the player once the mpd playlist has concluded (`true/false`).
+* ***show_playlist*:** Whether or not to show the playlist view.
 
 
 #### mpd
@@ -44,7 +45,7 @@ The config file is located at `~/.config/miniplayer/config`. The example configu
 
 
 #### keybindings
-This section allows you to change the keybinds for the player. The format for a keybind is `key = action` (for example `p = play_pause`). Available actions are
+This section allows you to change the keybinds for the player. The format for a keybind is `key = action` (for example `p = play_pause` or `left = last_track`). Available actions are
 * `play_pause`
 * `next_track`
 * `last_track`
@@ -53,20 +54,26 @@ This section allows you to change the keybinds for the player. The format for a 
 * `toggle_info`
 * `help`
 * `quit`
+* `select_down`
+* `select_up`
+* `select`
 
 
 ## Default keybinds
 
-| Key | function      |
-|-----|---------------|
-| h   | Show keybinds |
-| p   | Play/pause    |
-| >   | Next track    |
-| <   | Last track    |
-| q   | Quit          |
-| +   | Volume up     |
-| -   | Volume down   |
-| i   | Toggle info   |
+| Key   | function            |
+|-------|---------------------|
+| h     | Show keybinds       |
+| p     | Play/pause          |
+| >     | Next track          |
+| <     | Last track          |
+| q     | Quit                |
+| +     | Volume up           |
+| -     | Volume down         |
+| i     | Toggle info         |
+| Up    | Selection up        |
+| Down  | Selection down      |
+| Enter | Play selected song  |
 
 These keybinds can be changed by editing the config file. See the [`config.example`](config.example) file for the format.
 
@@ -78,3 +85,8 @@ If this does not work, try changing `image_method` from `pixcat` to `ueberzug` o
 
 2. **Q:** Album art is too big/too small.  
 **A:** You need to configure `font_height` and `font_width`. Their values should be the actual pixel height and width of a character in your terminal.
+
+
+## More screenshots!
+
+![playlist](img/playlist.png)

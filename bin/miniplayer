@@ -2,7 +2,6 @@
 import curses
 import os
 from mpd import MPDClient
-import mpd
 import ffmpeg
 import pixcat
 import time
@@ -21,7 +20,8 @@ if "player" not in config.sections():
                         "image_method":    "pixcat",
                         "album_art_only":  False,
                         "volume_step":     5,
-                        "auto_close":      False
+                        "auto_close":      False,
+                        "show_playlist":   True,
                         }
 
 if "mpd" not in config.sections():
@@ -31,14 +31,17 @@ if "mpd" not in config.sections():
                      }
 
 # Initialise keybindings
-default_bindings = {">": "next_track",
-                    "<": "last_track",
-                    "+": "volume_up",
-                    "-": "volume_down",
-                    "p": "play_pause",
-                    "q": "quit",
-                    "h": "help",
-                    "i": "toggle_info"
+default_bindings = {">":     "next_track",
+                    "<":     "last_track",
+                    "+":     "volume_up",
+                    "-":     "volume_down",
+                    "p":     "play_pause",
+                    "q":     "quit",
+                    "h":     "help",
+                    "i":     "toggle_info",
+                    "down":  "select_down",
+                    "up":    "select_up",
+                    "enter": "select"
                     }
 
 if "keybindings" not in config.sections():
@@ -87,6 +90,12 @@ VOLUMESTEP = player_config.getint("volume_step", 5)
 # Autoclose boolean
 AUTOCLOSE = player_config.getboolean("auto_close", False)
 
+# Playlist padding
+PLAYLISTMARGIN = 4
+
+# Config option to display the playlist
+DISABLEPLAYLIST = not player_config.getboolean("show_playlist", True)
+
 
 def albumArtSize(album_space, window_width):
     """
@@ -104,11 +113,15 @@ def albumArtSize(album_space, window_width):
     return image_width_px, image_width, image_height
 
 
+
+
+
 class Player:
     def __init__(self):
         # Curses initialisation
         self.stdscr = curses.initscr()
         self.stdscr.nodelay(True)
+        self.stdscr.keypad(True)
 
         # Curses config
         curses.noecho()
@@ -129,15 +142,39 @@ class Player:
 
         self.last_song = None
 
-        # Curses window
-        self.window_height, self.window_width = self.stdscr.getmaxyx()
-        self.win = curses.newwin(self.window_height, self.window_width, 0, 0)
+        # Album art only flag
+        self.album_art_only = player_config.getboolean("album_art_only", False)
 
-        self.text_start = int(self.window_height - 5)
+        # Screen size
+        maxyx = self.stdscr.getmaxyx()
+        self.screen_height, self.screen_width = maxyx
+
+        # Album art window
+        self.art_window_height, self.art_window_width = self.albumArtWinWidth(*maxyx)
+        self.art_win = curses.newwin(
+            self.art_window_height, self.art_window_width,
+            0, 0
+        )
+
+        # Playlist window
+        if self.playlistFits(*maxyx) and not self.album_art_only:
+            self.draw_playlist = True
+            self.playlist_window_width = maxyx[1] - self.art_window_width - PLAYLISTMARGIN
+            self.playlist_window_height = maxyx[0]
+
+            self.playlist_win = curses.newwin(
+                self.playlist_window_height, self.playlist_window_width,
+                0, self.art_window_width + PLAYLISTMARGIN
+            )
+        else:
+            self.draw_playlist = False
+            self.playlist_win = None
+
+        self.text_start = int(self.art_window_height - 5)
         self.album_space = self.text_start - 2
 
         # Calculate the size of the image
-        self.image_width_px, self.image_width, self.image_height = albumArtSize(self.album_space, self.window_width)
+        self.image_width_px, self.image_width, self.image_height = albumArtSize(self.album_space, self.art_window_width)
         self.image_y_pos = (self.album_space - self.image_height) // 2 + 1
 
         # Album art location
@@ -153,11 +190,33 @@ class Player:
         # Update needed flag
         self.update_needed = False
 
-        # Album art only flag
-        self.album_art_only = player_config.getboolean("album_art_only", False)
-
         # Flag to check if any music has been played
         self.has_music_been_played = False
+
+        # A counter to check how long since playlist has moved
+        self.control_cycle = 0
+
+        # Selected song in playlist
+        self.selected_song = 0
+
+
+    def playlistFits(self, height, width):
+        """
+        A function that checks if the playlist display should be drawn
+        based on the provided height and width
+        """
+        return height / width < 1/3 and not DISABLEPLAYLIST
+
+
+    def albumArtWinWidth(self, height, width):
+        """
+        A function that calculates the album art window height and
+        width based on the window height and width
+        """
+        if self.playlistFits(height, width) and not self.album_art_only:
+            return height, round(width * 2/5)
+        else:
+            return height, width
 
 
     def fitText(self):
@@ -169,7 +228,7 @@ class Player:
         song = self.title
         album = self.album
         artist = self.artist
-        width = self.window_width
+        width = self.art_window_width
 
         if len(song) > width:
             song = song[:width - len(song)]
@@ -199,29 +258,62 @@ class Player:
         """
         A function to check if the window size changed
         """
-        new_height, new_width = self.stdscr.getmaxyx()
+        window_height, window_width = self.stdscr.getmaxyx()
 
-        if (new_height, new_width) != (self.window_height, self.window_width) or force_update:
-            self.win.clear()
+        if (window_height, window_width) != (self.screen_height, self.screen_width) or force_update:
 
-            # Curses window
-            self.window_height, self.window_width = self.stdscr.getmaxyx()
+            self.draw_playlist = self.playlistFits(window_height, window_width) and not self.album_art_only
+
+            # Album art window
+            self.art_window_height, self.art_window_width = self.albumArtWinWidth(window_height, window_width)
+
+            # Playlist window
+            if self.draw_playlist:
+                self.playlist_window_width  = window_width - self.art_window_width - PLAYLISTMARGIN
+                self.playlist_window_height = window_height
+
+            # Close the playlist window if it exists
+            elif self.playlist_win is not None:
+                del self.playlist_win
+                self.playlist_win = None
 
             # Check if we are drawing info
             if self.album_art_only:
-                self.text_start = int(self.window_height)
+                self.text_start = int(self.art_window_height)
                 self.album_space = self.text_start - 1
             else:
-                self.text_start = int(self.window_height - 5)
+                self.text_start = int(self.art_window_height - 5)
                 self.album_space = self.text_start - 2
 
             # Calculate the size of the image
-            self.image_width_px, self.image_width, self.image_height = albumArtSize(self.album_space, self.window_width)
+            self.image_width_px, self.image_width, self.image_height = albumArtSize(self.album_space, self.art_window_width)
             self.image_y_pos = (self.album_space - self.image_height) // 2 + 1
 
-            # Resize the window
-            self.win.resize(self.window_height, self.window_width)
+            # Check if playlist window exists and if we are drawing it
+            if self.playlist_win is not None and self.draw_playlist:
+                self.playlist_win.clear()
+                self.playlist_win.refresh()
+
+                self.playlist_win.resize(
+                    self.playlist_window_height,
+                    self.playlist_window_width
+                )
+
+                self.playlist_win.mvwin(0, self.art_window_width + PLAYLISTMARGIN)
+
+            elif self.draw_playlist:
+                self.playlist_win = curses.newwin(
+                    self.playlist_window_height, self.playlist_window_width,
+                    0, self.art_window_width + PLAYLISTMARGIN
+                )
+
             self.last_song = None
+
+            # Resize the window
+            self.art_win.clear()
+            self.art_win.resize(self.art_window_height, self.art_window_width)
+
+            self.screen_height, self.screen_width = window_height, window_width
 
 
     def getAlbumArt(self, song_file):
@@ -233,9 +325,9 @@ class Player:
         song_file_abs = os.path.join(MUSICDIR, song_file)
 
         process = (
-                ffmpeg
-                .input(song_file_abs)
-                .output(self.album_art_loc)
+            ffmpeg
+            .input(song_file_abs)
+            .output(self.album_art_loc)
         )
 
         try:
@@ -261,11 +353,10 @@ class Player:
 
                 externalyx = [(x0, y0), (x1, y1)]
 
-                d.rectangle(externalyx, outline=foregroundCol, width=40)# fill=foregroundCol)
-            # d.ellipse(internalxy, fill=backgroundCol)
+                d.rectangle(externalyx, outline=foregroundCol, width=40)
+
             art.resize((512, 512))
             art.save(self.album_art_loc, "PNG")
-
 
 
     def checkSongUpdate(self):
@@ -288,7 +379,11 @@ class Player:
         self.progress = self.elapsed/self.duration
 
         if self.last_song != song:
-            self.win.clear()
+            self.art_win.clear()
+
+            # Move selected_song to the currently playing one
+            if self.control_cycle == 0:
+                self.selected_song = int(song["pos"])
 
             try:
                 self.album = song["album"]
@@ -324,11 +419,10 @@ class Player:
         """
         A function that toggles the display of track info
         """
-
         self.album_art_only = not self.album_art_only
-        self.win.clear()
         self.updateWindowSize(force_update=True)
-        self.win.refresh()
+        self.art_win.clear()
+        self.art_win.refresh()
 
 
     def handleKeypress(self):
@@ -345,7 +439,15 @@ class Player:
             'h' -- Help
         """
 
-        anytime_keys = ["quit", "help"]
+        anytime_keys = ["quit", "help", "select_up", "select_down", "select"]
+
+        special_key_map = {curses.KEY_UP:     "up",
+                           curses.KEY_DOWN:   "down",
+                           curses.KEY_LEFT:   "left",
+                           curses.KEY_RIGHT:  "right",
+                           curses.KEY_ENTER:  "enter",
+                           10:                "enter"
+                           }
 
         if self.checkSongUpdate() == 1:
             stopped = True
@@ -357,7 +459,10 @@ class Player:
 
         while key > 0:
             # Resolve every key in buffer
-            keyChar = chr(key).lower()
+            if key in special_key_map.keys():
+                keyChar = special_key_map[key]
+            else:
+                keyChar = chr(key).lower()
 
             # Parse key
             if keyChar not in keybindings.keys():
@@ -400,6 +505,22 @@ class Player:
                 self.toggleInfo()
                 self.update_needed = True
 
+            elif action == "select_up":
+                self.control_cycle = 1
+                self.selected_song -= 1
+                self.update_needed = True
+
+            elif action == "select_down":
+                self.control_cycle = 1
+                self.selected_song += 1
+                self.update_needed = True
+
+            elif action == "select":
+                self.control_cycle = 1
+                self.client.play(self.selected_song % len(self.client.playlist()))
+                self.update_needed = True
+
+
             key = self.stdscr.getch()
 
     def drawInfo(self):
@@ -415,41 +536,101 @@ class Player:
 
         if state == 0:
             # Everything fits
-            self.win.addstr(self.text_start,     0, f"{title}")
-            self.win.addstr(self.text_start + 1, 0, f"{artist}{seperator}{album}")
+            self.art_win.addstr(self.text_start,     0, f"{title}")
+            self.art_win.addstr(self.text_start + 1, 0, f"{artist}{seperator}{album}")
 
         elif state == 1:
             # Too wide
-            self.win.addstr(self.text_start - 1, 0, f"{title}")
-            self.win.addstr(self.text_start,     0, f"{album}")
-            self.win.addstr(self.text_start + 1, 0, f"{artist}")
+            self.art_win.addstr(self.text_start - 1, 0, f"{title}")
+            self.art_win.addstr(self.text_start,     0, f"{album}")
+            self.art_win.addstr(self.text_start + 1, 0, f"{artist}")
 
         else:
             # No album
-            self.win.addstr(self.text_start,     0, f"{title}")
-            self.win.addstr(self.text_start + 1, 0, f"{artist}")
+            self.art_win.addstr(self.text_start,     0, f"{title}")
+            self.art_win.addstr(self.text_start + 1, 0, f"{artist}")
 
 
         # Progress bar
         song_duration = (int(self.duration / 60), round(self.duration % 60))
         song_elapsed  = (int(self.elapsed / 60),  round(self.elapsed % 60))
 
-        self.win.addstr(
+        self.art_win.addstr(
             self.text_start + 2, 0,
-            "-"*(int((self.window_width - 1) * self.progress)) + ">",
+            "-"*(int((self.art_window_width - 1) * self.progress)) + ">",
             curses.color_pair(1)
         )
 
         # Duration string
         time_string = f"{song_elapsed[0]}:{song_elapsed[1]:02d}/{song_duration[0]}:{song_duration[1]:02d}"
 
-        self.win.addstr(
+        self.art_win.addstr(
             self.text_start + 3, 0,
-            f"{time_string:>{self.window_width}}",
+            f"{time_string:>{self.art_window_width}}",
             curses.color_pair(2)
         )
 
-        self.win.refresh()
+        self.art_win.refresh()
+
+
+    def drawPlaylist(self):
+        """
+        A function that draws the playlist
+        """
+
+        # Draw playlist
+        if not self.draw_playlist:
+            return
+
+        playlist = self.client.playlistinfo()
+        current_song = self.client.currentsong()
+
+        # selected_pos = int(current_song["pos"])
+        selected_pos = self.selected_song % len(playlist)
+
+        # Determine where to start the playlist
+        if selected_pos > self.playlist_window_height // 2 and len(playlist) > self.playlist_window_height:
+            start = selected_pos - (self.playlist_window_height - 1) // 2
+        else:
+            start = 0
+
+        start = min(abs(len(playlist) - self.playlist_window_height), start)
+
+        line = 0
+        while line < self.playlist_window_height:
+            # Check if playlist is empty
+            if line + start < len(playlist):
+                playlist_item = playlist[start + line]
+            else:
+                playlist_item = None
+
+            # Decide color
+            pair = 0
+
+            if playlist_item == current_song:
+                pair = curses.color_pair(2)
+
+            if playlist_item == playlist[selected_pos]:
+                pair = curses.color_pair(2) | curses.A_REVERSE
+
+            # Move and write text
+            try:
+                self.playlist_win.move(line, 0)
+
+                if playlist_item is not None:
+                    self.playlist_win.addstr(
+                        f"{playlist_item['artist']} - {playlist_item['title']}"[:self.playlist_window_width - 1],
+                        pair
+                    )
+
+                self.playlist_win.clrtoeol()
+
+            except curses.error:
+                return
+
+            line += 1
+
+        self.playlist_win.refresh()
 
 
     def hideAlbumArt(self):
@@ -457,7 +638,7 @@ class Player:
         A function that hides the album art
         """
         if IMAGEMETHOD == "ueberzug":
-                self.art_placement.visibility = ueberzug.Visibility.INVISIBLE
+            self.art_placement.visibility = ueberzug.Visibility.INVISIBLE
 
 
     def drawAlbumArt(self):
@@ -467,7 +648,7 @@ class Player:
 
         if IMAGEMETHOD == "ueberzug":
             # Figure out new placement
-            self.art_placement.x = (self.window_width - self.image_width)//2
+            self.art_placement.x = (self.art_window_width - self.image_width)//2
             self.art_placement.y = self.image_y_pos
 
             # Figure out height and width
@@ -483,8 +664,8 @@ class Player:
         elif IMAGEMETHOD == "pixcat":
             (
                 pixcat.Image(self.album_art_loc)
-                .thumbnail(self.image_width_px )
-                .show(x=(self.window_width - self.image_width)//2, y=self.image_y_pos)
+                .thumbnail(self.image_width_px)
+                .show(x=(self.art_window_width - self.image_width)//2, y=self.image_y_pos)
             )
 
 
@@ -498,8 +679,8 @@ class Player:
             string -- The string to draw
         """
 
-        x_pos = self.window_width / 2 - len(string) / 2
-        self.win.addstr(y, int(x_pos), string)
+        x_pos = self.art_window_width / 2 - len(string) / 2
+        self.art_win.addstr(y, int(x_pos), string)
 
 
     def drawHelp(self):
@@ -512,18 +693,17 @@ class Player:
 
         # Left and right margin pct
         lr_margin_pct = 0.1
-        lr_margin = round(self.window_width * lr_margin_pct)
+        lr_margin = round(self.art_window_width * lr_margin_pct)
 
         # Actual space for text
-        x_space = self.window_width - 2 * (lr_margin)
+        x_space = self.art_window_width - 2 * (lr_margin)
 
         # Check if window has been cleared
         if not self.cleared:
-            self.win.clear()
+            self.art_win.clear()
             self.cleared = True
 
         # Figure out center, y_start and x_start
-        center_y, center_x = (self.window_height // 2, self.window_width // 2)
         y_start = top_vspace
         x_start = int(lr_margin)
 
@@ -535,9 +715,9 @@ class Player:
             y_start += 1
             sep = "." * (x_space - len(key) - len(desc) - 2)
             desc = desc.replace("_", " ").capitalize()
-            self.win.addstr(y_start, x_start, f"{key} {sep} {desc}")
+            self.art_win.addstr(y_start, x_start, f"{key} {sep} {desc}")
 
-        self.win.refresh()
+        self.art_win.refresh()
 
 
     def draw(self):
@@ -545,12 +725,12 @@ class Player:
         The function that draws the now playing window
         """
         if not self.cleared:
-            self.win.clear()
+            self.art_win.clear()
             self.cleared = True
 
         # Force window nings
-        self.win.redrawln(0, 1)
-        self.win.addstr(0, 0, " ")
+        self.art_win.redrawln(0, 1)
+        self.art_win.addstr(0, 0, " ")
 
         # Get mpd state
         state = self.checkSongUpdate()
@@ -561,13 +741,14 @@ class Player:
                 # Check if the playlist has concluded and if we should close
                 raise KeyboardInterrupt
 
-            self.win.clear()
+            self.art_win.clear()
             self.hideAlbumArt()
 
             infomsg = "Put some beats on!"
 
-            self.win.addstr(self.window_height // 2, (self.window_width - len(infomsg)) // 2, infomsg)
-            self.win.refresh()
+            self.art_win.addstr(self.art_window_height // 2, (self.art_window_width - len(infomsg)) // 2, infomsg)
+            self.art_win.refresh()
+            self.drawPlaylist()
 
             return
 
@@ -576,6 +757,7 @@ class Player:
         # Draw the window
         if not self.album_art_only:
             self.drawInfo()
+            self.drawPlaylist()
 
         self.drawAlbumArt()
 
@@ -617,6 +799,10 @@ class Player:
 
                     self.update_needed = False
 
+                # Update control_cycle once a second if it is not 0
+                if i == 0 and self.control_cycle != 0:
+                    self.control_cycle = (self.control_cycle + 1) % 30
+
                 e = time.perf_counter()
 
                 sleeptime = abs(1/FPS - (e-s))
@@ -644,6 +830,3 @@ except ConnectionRefusedError:
     curses.nocbreak()
     curses.endwin()
     print(f"Could not connect to mpd on {MPDHOST}:{MPDPORT}")
-
-
-
