@@ -1,23 +1,28 @@
 [player]
 music_directory = ~/Music
-font_width = 11
-font_height = 24
-image_method = pixcat
-volume_step = 5
-auto_close = false
-album_art_only = false
+font_width      = 11
+font_height     = 24
+image_method    = pixcat
+volume_step     = 5
+auto_close      = false
+album_art_only  = false
+show_playlist   = true
+
 
 [mpd]
-host = localhost
-port = 6600
+host   = localhost
+port   = 6600
 # pass = example
 
 # [keybindings]
-# > = next_track
-# < = last_track
-# + = volume_up
-# - = volume_down
-# p = play_pause
-# q = quit
-# h = help
-# i = toggle_info
+# >     = next_track
+# <     = last_track
+# +     = volume_up
+# -     = volume_down
+# p     = play_pause
+# q     = quit
+# h     = help
+# i     = toggle_info
+# up    = select_up
+# down  = select_down
+# enter = select
