@@ -113,23 +113,7 @@ def albumArtSize(album_space, window_width):
     return image_width_px, image_width, image_height
 
 
-def drawPlaylist(height, width):
-    """
-    A function that checks if the playlist display should be drawn
-    based on the provided height and width
-    """
-    return height / width < 1/3 and not DISABLEPLAYLIST
 
-
-def albumArtWinWidth(height, width):
-    """
-    A function that calculates the album art window height and
-    width based on the window height and width
-    """
-    if drawPlaylist(height, width):
-        return height, round(width * 2/5)
-    else:
-        return height, width
 
 
 class Player:
@@ -166,14 +150,14 @@ class Player:
         self.screen_height, self.screen_width = maxyx
 
         # Album art window
-        self.art_window_height, self.art_window_width = albumArtWinWidth(*maxyx)
+        self.art_window_height, self.art_window_width = self.albumArtWinWidth(*maxyx)
         self.art_win = curses.newwin(
             self.art_window_height, self.art_window_width,
             0, 0
         )
 
         # Playlist window
-        if drawPlaylist(*maxyx) and not self.album_art_only:
+        if self.playlistFits(*maxyx) and not self.album_art_only:
             self.draw_playlist = True
             self.playlist_window_width = maxyx[1] - self.art_window_width - PLAYLISTMARGIN
             self.playlist_window_height = maxyx[0]
@@ -214,6 +198,25 @@ class Player:
 
         # Selected song in playlist
         self.selected_song = 0
+
+
+    def playlistFits(self, height, width):
+        """
+        A function that checks if the playlist display should be drawn
+        based on the provided height and width
+        """
+        return height / width < 1/3 and not DISABLEPLAYLIST
+
+
+    def albumArtWinWidth(self, height, width):
+        """
+        A function that calculates the album art window height and
+        width based on the window height and width
+        """
+        if self.playlistFits(height, width) and not self.album_art_only:
+            return height, round(width * 2/5)
+        else:
+            return height, width
 
 
     def fitText(self):
@@ -259,10 +262,10 @@ class Player:
 
         if (window_height, window_width) != (self.screen_height, self.screen_width) or force_update:
 
-            self.draw_playlist = drawPlaylist(window_height, window_width) and not self.album_art_only
+            self.draw_playlist = self.playlistFits(window_height, window_width) and not self.album_art_only
 
             # Album art window
-            self.art_window_height, self.art_window_width = albumArtWinWidth(window_height, window_width)
+            self.art_window_height, self.art_window_width = self.albumArtWinWidth(window_height, window_width)
 
             # Playlist window
             if self.draw_playlist:
@@ -416,10 +419,9 @@ class Player:
         """
         A function that toggles the display of track info
         """
-
         self.album_art_only = not self.album_art_only
-        self.art_win.clear()
         self.updateWindowSize(force_update=True)
+        self.art_win.clear()
         self.art_win.refresh()
 
 
@@ -755,9 +757,9 @@ class Player:
         # Draw the window
         if not self.album_art_only:
             self.drawInfo()
+            self.drawPlaylist()
 
         self.drawAlbumArt()
-        self.drawPlaylist()
 
 
     @ueberzug.Canvas()
