@@ -436,6 +436,7 @@ class Player:
                            curses.KEY_DOWN:   "down",
                            curses.KEY_LEFT:   "left",
                            curses.KEY_RIGHT:  "right",
+                           curses.KEY_ENTER:  "enter",
                            10:                "enter"
                            }
 
