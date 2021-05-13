@@ -359,6 +359,34 @@ class Player:
             art.save(self.album_art_loc, "PNG")
 
 
+    def getSongInfo(self, song):
+        """
+        A function that returns a tuple of the given songs
+        album, artist, title
+        if they do not exist, the function will return
+        "", "", filename respectively
+        """
+        try:
+            album = song["album"]
+        except KeyError:
+            album = ""
+
+        try:
+            artist = song["artist"]
+        except KeyError:
+            artist = ""
+
+        try:
+            title = song["title"]
+        except KeyError:
+            # If no title, use base file name
+            aux = song["file"]
+            aux = os.path.basename(aux)
+            title = aux
+
+        return album, artist, title
+
+
     def checkSongUpdate(self):
         """
         Checks if there is a new song playing
@@ -385,25 +413,7 @@ class Player:
             if self.control_cycle == 0:
                 self.selected_song = int(song["pos"])
 
-            try:
-                self.album = song["album"]
-            except KeyError:
-                self.album = ""
-
-            try:
-                self.artist = song["artist"]
-            except KeyError:
-                self.artist = ""
-
-            try:
-                self.title = song["title"]
-            except KeyError:
-                # If no title, use base file name
-                aux = song["file"]
-                aux = os.path.basename(aux)
-                aux = os.path.splitext(aux)[0]
-                self.title = aux
-
+            self.album, self.artist, self.title = self.getSongInfo(song)
             self.last_song = song
 
             self.getAlbumArt(song["file"])
@@ -517,8 +527,11 @@ class Player:
 
             elif action == "select":
                 self.control_cycle = 1
-                self.client.play(self.selected_song % len(self.client.playlist()))
-                self.update_needed = True
+                playlist_length = len(self.client.playlist())
+
+                if playlist_length > 0:
+                    self.client.play(self.selected_song % playlist_length)
+                    self.update_needed = True
 
 
             key = self.stdscr.getch()
@@ -586,6 +599,13 @@ class Player:
         current_song = self.client.currentsong()
 
         # selected_pos = int(current_song["pos"])
+        playlist_length = len(self.client.playlist())
+        if playlist_length == 0:
+            selected_pos = 0
+            self.playlist_win.erase()
+            self.playlist_win.refresh()
+            return
+
         selected_pos = self.selected_song % len(playlist)
 
         # Determine where to start the playlist
@@ -618,8 +638,15 @@ class Player:
                 self.playlist_win.move(line, 0)
 
                 if playlist_item is not None:
+                    _, artist, title = self.getSongInfo(playlist_item)
+
+                    if artist == "":
+                        sep = ""
+                    else:
+                        sep = " - "
+
                     self.playlist_win.addstr(
-                        f"{playlist_item['artist']} - {playlist_item['title']}"[:self.playlist_window_width - 1],
+                        f"{artist}{sep}{title}"[:self.playlist_window_width - 1],
                         pair
                     )
 
