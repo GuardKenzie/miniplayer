@@ -602,15 +602,20 @@ class Player:
                 pair = curses.color_pair(2) | curses.A_REVERSE
 
             # Move and write text
-            self.playlist_win.move(line, 0)
+            try:
+                self.playlist_win.move(line, 0)
 
-            if playlist_item is not None:
-                self.playlist_win.addstr(
-                    f"{playlist_item['artist']} - {playlist_item['title']}"[:self.playlist_window_width - 1],
-                    pair
-                )
+                if playlist_item is not None:
+                    self.playlist_win.addstr(
+                        f"{playlist_item['artist']} - {playlist_item['title']}"[:self.playlist_window_width - 1],
+                        pair
+                    )
 
-            self.playlist_win.clrtoeol()
+                self.playlist_win.clrtoeol()
+
+            except curses.error:
+                return
+
             line += 1
 
         self.playlist_win.refresh()
