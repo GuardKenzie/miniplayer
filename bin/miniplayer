@@ -209,6 +209,9 @@ class Player:
         # Flag to check if any music has been played
         self.has_music_been_played = False
 
+        # A counter to check how long since playlist has moved
+        self.control_cycle = 0
+
         # Selected song in playlist
         self.selected_song = 0
 
@@ -375,6 +378,10 @@ class Player:
         if self.last_song != song:
             self.art_win.clear()
 
+            # Move selected_song to the currently playing one
+            if self.control_cycle == 0:
+                self.selected_song = int(song["pos"])
+
             try:
                 self.album = song["album"]
             except KeyError:
@@ -497,14 +504,17 @@ class Player:
                 self.update_needed = True
 
             elif action == "select_up":
+                self.control_cycle = 1
                 self.selected_song -= 1
                 self.update_needed = True
 
             elif action == "select_down":
+                self.control_cycle = 1
                 self.selected_song += 1
                 self.update_needed = True
 
             elif action == "select":
+                self.control_cycle = 1
                 self.client.play(self.selected_song % len(self.client.playlist()))
                 self.update_needed = True
 
@@ -786,6 +796,10 @@ class Player:
                         self.drawHelp()
 
                     self.update_needed = False
+
+                # Update control_cycle once a second if it is not 0
+                if i == 0 and self.control_cycle != 0:
+                    self.control_cycle = (self.control_cycle + 1) % 30
 
                 e = time.perf_counter()
 
