@@ -31,14 +31,17 @@ if "mpd" not in config.sections():
                      }
 
 # Initialise keybindings
-default_bindings = {">": "next_track",
-                    "<": "last_track",
-                    "+": "volume_up",
-                    "-": "volume_down",
-                    "p": "play_pause",
-                    "q": "quit",
-                    "h": "help",
-                    "i": "toggle_info"
+default_bindings = {">":     "next_track",
+                    "<":     "last_track",
+                    "+":     "volume_up",
+                    "-":     "volume_down",
+                    "p":     "play_pause",
+                    "q":     "quit",
+                    "h":     "help",
+                    "i":     "toggle_info",
+                    "down":  "select_down",
+                    "up":    "select_up",
+                    "enter": "select"
                     }
 
 if "keybindings" not in config.sections():
@@ -134,6 +137,7 @@ class Player:
         # Curses initialisation
         self.stdscr = curses.initscr()
         self.stdscr.nodelay(True)
+        self.stdscr.keypad(True)
 
         # Curses config
         curses.noecho()
@@ -161,7 +165,7 @@ class Player:
         maxyx = self.stdscr.getmaxyx()
         self.screen_height, self.screen_width = maxyx
 
-        # Album art window 
+        # Album art window
         self.art_window_height, self.art_window_width = albumArtWinWidth(*maxyx)
         self.art_win = curses.newwin(
             self.art_window_height, self.art_window_width,
@@ -204,6 +208,9 @@ class Player:
 
         # Flag to check if any music has been played
         self.has_music_been_played = False
+
+        # Selected song in playlist
+        self.selected_song = 0
 
 
     def fitText(self):
@@ -312,9 +319,9 @@ class Player:
         song_file_abs = os.path.join(MUSICDIR, song_file)
 
         process = (
-                ffmpeg
-                .input(song_file_abs)
-                .output(self.album_art_loc)
+            ffmpeg
+            .input(song_file_abs)
+            .output(self.album_art_loc)
         )
 
         try:
@@ -423,7 +430,14 @@ class Player:
             'h' -- Help
         """
 
-        anytime_keys = ["quit", "help"]
+        anytime_keys = ["quit", "help", "select_up", "select_down", "select"]
+
+        special_key_map = {curses.KEY_UP:     "up",
+                           curses.KEY_DOWN:   "down",
+                           curses.KEY_LEFT:   "left",
+                           curses.KEY_RIGHT:  "right",
+                           10:                "enter"
+                           }
 
         if self.checkSongUpdate() == 1:
             stopped = True
@@ -435,7 +449,10 @@ class Player:
 
         while key > 0:
             # Resolve every key in buffer
-            keyChar = chr(key).lower()
+            if key in special_key_map.keys():
+                keyChar = special_key_map[key]
+            else:
+                keyChar = chr(key).lower()
 
             # Parse key
             if keyChar not in keybindings.keys():
@@ -477,6 +494,19 @@ class Player:
             elif action == "toggle_info":
                 self.toggleInfo()
                 self.update_needed = True
+
+            elif action == "select_up":
+                self.selected_song -= 1
+                self.update_needed = True
+
+            elif action == "select_down":
+                self.selected_song += 1
+                self.update_needed = True
+
+            elif action == "select":
+                self.client.play(self.selected_song % len(self.client.playlist()))
+                self.update_needed = True
+
 
             key = self.stdscr.getch()
 
@@ -529,48 +559,60 @@ class Player:
 
         self.art_win.refresh()
 
+
+    def drawPlaylist(self):
+        """
+        A function that draws the playlist
+        """
+
         # Draw playlist
-        if self.draw_playlist:
-            playlist = self.client.playlistinfo()
-            currentsong = self.client.currentsong()
+        if not self.draw_playlist:
+            return
 
-            currentpos = int(currentsong["pos"])
+        playlist = self.client.playlistinfo()
+        current_song = self.client.currentsong()
 
-            # Determine where to start the playlist
-            if currentpos > self.playlist_window_height // 2 and len(playlist) > self.playlist_window_height:
-                start = currentpos - (self.playlist_window_height - 1) // 2
+        # selected_pos = int(current_song["pos"])
+        selected_pos = self.selected_song % len(playlist)
+
+        # Determine where to start the playlist
+        if selected_pos > self.playlist_window_height // 2 and len(playlist) > self.playlist_window_height:
+            start = selected_pos - (self.playlist_window_height - 1) // 2
+        else:
+            start = 0
+
+        start = min(abs(len(playlist) - self.playlist_window_height), start)
+
+        line = 0
+        while line < self.playlist_window_height:
+            # Check if playlist is empty
+            if line + start < len(playlist):
+                playlist_item = playlist[start + line]
             else:
-                start = 0
+                playlist_item = None
 
-            start = min(abs(len(playlist) - self.playlist_window_height), start)
+            # Decide color
+            pair = 0
 
-            line = 0
-            while line < self.playlist_window_height:
-                # Check if playlist is empty
-                if line + start < len(playlist):
-                    playlist_item = playlist[start + line]
-                else:
-                    playlist_item = None
+            if playlist_item == current_song:
+                pair = curses.color_pair(2)
 
-                # Decide color
-                if playlist_item == currentsong:
-                    pair = curses.A_REVERSE | curses.color_pair(2)
-                else:
-                    pair = 0
+            if playlist_item == playlist[selected_pos]:
+                pair = curses.color_pair(2) | curses.A_REVERSE
 
-                # Move and write text
-                self.playlist_win.move(line, 0)
+            # Move and write text
+            self.playlist_win.move(line, 0)
 
-                if playlist_item is not None:
-                    self.playlist_win.addstr(
-                        f"{playlist_item['artist']} - {playlist_item['title']}"[:self.playlist_window_width],
-                        pair
-                    )
+            if playlist_item is not None:
+                self.playlist_win.addstr(
+                    f"{playlist_item['artist']} - {playlist_item['title']}"[:self.playlist_window_width - 1],
+                    pair
+                )
 
-                self.playlist_win.clrtoeol()
-                line += 1
+            self.playlist_win.clrtoeol()
+            line += 1
 
-            self.playlist_win.refresh()
+        self.playlist_win.refresh()
 
 
     def hideAlbumArt(self):
@@ -688,6 +730,7 @@ class Player:
 
             self.art_win.addstr(self.art_window_height // 2, (self.art_window_width - len(infomsg)) // 2, infomsg)
             self.art_win.refresh()
+            self.drawPlaylist()
 
             return
 
@@ -698,6 +741,7 @@ class Player:
             self.drawInfo()
 
         self.drawAlbumArt()
+        self.drawPlaylist()
 
 
     @ueberzug.Canvas()
