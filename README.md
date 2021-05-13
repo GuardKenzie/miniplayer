@@ -45,7 +45,7 @@ The config file is located at `~/.config/miniplayer/config`. The example configu
 
 
 #### keybindings
-This section allows you to change the keybinds for the player. The format for a keybind is `key = action` (for example `p = play_pause`). Available actions are
+This section allows you to change the keybinds for the player. The format for a keybind is `key = action` (for example `p = play_pause` or `left = last_track`). Available actions are
 * `play_pause`
 * `next_track`
 * `last_track`
@@ -54,20 +54,26 @@ This section allows you to change the keybinds for the player. The format for a 
 * `toggle_info`
 * `help`
 * `quit`
+* `select_down`
+* `select_up`
+* `select`
 
 
 ## Default keybinds
 
-| Key | function      |
-|-----|---------------|
-| h   | Show keybinds |
-| p   | Play/pause    |
-| >   | Next track    |
-| <   | Last track    |
-| q   | Quit          |
-| +   | Volume up     |
-| -   | Volume down   |
-| i   | Toggle info   |
+| Key   | function            |
+|-------|---------------------|
+| h     | Show keybinds       |
+| p     | Play/pause          |
+| >     | Next track          |
+| <     | Last track          |
+| q     | Quit                |
+| +     | Volume up           |
+| -     | Volume down         |
+| i     | Toggle info         |
+| Up    | Selection up        |
+| Down  | Selection down      |
+| Enter | Play selected song  |
 
 These keybinds can be changed by editing the config file. See the [`config.example`](config.example) file for the format.
 
