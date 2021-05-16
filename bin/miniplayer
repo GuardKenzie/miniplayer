@@ -532,6 +532,7 @@ class Player:
                 if playlist_length > 0:
                     self.client.play(self.selected_song % playlist_length)
                     self.update_needed = True
+                    self.last_song = None
 
 
             key = self.stdscr.getch()
