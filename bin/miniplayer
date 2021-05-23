@@ -27,7 +27,6 @@ if "player" not in config.sections():
 if "mpd" not in config.sections():
     config["mpd"] = {"host": "localhost",
                      "port": "6600",
-                     "pass": False
                      }
 
 # Initialise keybindings
