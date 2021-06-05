@@ -473,6 +473,9 @@ class Player:
             else:
                 keyChar = chr(key).lower()
 
+            # Get playlist length
+            playlist_length = len(self.client.playlist())
+
             # Parse key
             if keyChar not in keybindings.keys():
                 key = self.stdscr.getch()
@@ -516,17 +519,18 @@ class Player:
 
             elif action == "select_up":
                 self.control_cycle = 1
-                self.selected_song -= 1
+                if playlist_length > 0:
+                    self.selected_song = (self.selected_song - 1) % playlist_length
                 self.update_needed = True
 
             elif action == "select_down":
                 self.control_cycle = 1
-                self.selected_song += 1
+                if playlist_length > 0:
+                    self.selected_song = (self.selected_song + 1) % playlist_length
                 self.update_needed = True
 
             elif action == "select":
                 self.control_cycle = 1
-                playlist_length = len(self.client.playlist())
 
                 if playlist_length > 0:
                     self.client.play(self.selected_song % playlist_length)
