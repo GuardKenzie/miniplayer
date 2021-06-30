@@ -8,6 +8,7 @@ auto_close      = false
 album_art_only  = false
 show_playlist   = true
 looping         = false
+random          = false
 
 
 [mpd]

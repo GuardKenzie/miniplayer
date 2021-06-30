@@ -151,6 +151,13 @@ class Player:
             # Requires else to overwrite repeat attribute if different 
             # miniplayer sessions with different setting use the same 
             self.client.repeat(0)
+        
+        # Random flag
+        if player_config.getboolean("random", False):
+            self.client.random(1)
+        else:
+            # For same reason as looping
+            self.client.random(0)
             
         # Screen size
         maxyx = self.stdscr.getmaxyx()
