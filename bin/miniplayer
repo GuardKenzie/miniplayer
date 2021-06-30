@@ -144,6 +144,14 @@ class Player:
         # Album art only flag
         self.album_art_only = player_config.getboolean("album_art_only", False)
 
+        # Looping flag
+        if player_config.getboolean("looping", False):
+            self.client.repeat(1)
+        else: 
+            # Requires else to overwrite repeat attribute if different 
+            # miniplayer sessions with different setting use the same 
+            self.client.repeat(0)
+            
         # Screen size
         maxyx = self.stdscr.getmaxyx()
         self.screen_height, self.screen_width = maxyx
