@@ -61,30 +61,30 @@ This section allows you to change the keybinds for the player. The format for a 
 
 ## Default keybinds
 
-| Key   | function            |
-|-------|---------------------|
-| h     | Show keybinds       |
-| p     | Play/pause          |
-| >     | Next track          |
-| <     | Last track          |
-| q     | Quit                |
-| +     | Volume up           |
-| -     | Volume down         |
-| i     | Toggle info         |
-| Up    | Selection up        |
-| Down  | Selection down      |
-| Enter | Play selected song  |
+| Key   | function           |
+| ----- | ------------------ |
+| h     | Show keybinds      |
+| p     | Play/pause         |
+| >     | Next track         |
+| <     | Last track         |
+| q     | Quit               |
+| +     | Volume up          |
+| -     | Volume down        |
+| i     | Toggle info        |
+| Up    | Selection up       |
+| Down  | Selection down     |
+| Enter | Play selected song |
 
 These keybinds can be changed by editing the config file. See the [`config.example`](config.example) file for the format.
 
     
 ## F.A.Q.
-1. **Q:** Album art is not showing up.  
-**A:** Make sure your `music_directory` is not quoted i.e. if your music directory is `~/My Music` then your config should look like `music_directory = ~/My Music`.  
-If this does not work, try changing `image_method` from `pixcat` to `ueberzug` or vice versa.
+- **Q:** Album art is not showing up.  
+   **A:** Make sure your `music_directory` is not quoted i.e. if your music directory is `~/My Music` then your config should look like `music_directory = ~/My Music`.  
+   If this does not work, try changing `image_method` from `pixcat` to `ueberzug` or vice versa.
 
-2. **Q:** Album art is too big/too small.  
-**A:** You need to configure `font_height` and `font_width`. Their values should be the actual pixel height and width of a character in your terminal.
+- **Q:** Album art is too big/too small.  
+   **A:** You need to configure `font_height` and `font_width`. Their values should be the actual pixel height and width of a character in your terminal.
 
 
 ## More screenshots!
