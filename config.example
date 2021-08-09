@@ -1,13 +1,15 @@
 [player]
-music_directory = ~/Music
 font_width      = 11
 font_height     = 24
-image_method    = pixcat
 volume_step     = 5
 auto_close      = false
 album_art_only  = false
 show_playlist   = true
 
+[art]
+image_method    = pixcat
+music_directory = ~/Music
+# http_base_url = http://localhost:6667/cover-art
 
 [mpd]
 host   = localhost

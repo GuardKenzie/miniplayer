@@ -1,6 +1,8 @@
 #!/bin/python
 import curses
 import os
+import posixpath
+import requests
 from mpd import MPDClient
 import ffmpeg
 import pixcat
@@ -14,15 +16,18 @@ config = configparser.ConfigParser()
 config.read(os.path.expanduser("~/.config/miniplayer/config"))
 
 if "player" not in config.sections():
-    config["player"] = {"music_directory": "~/Music",
-                        "font_width":      11,
+    config["player"] = {"font_width":      11,
                         "font_height":     24,
-                        "image_method":    "pixcat",
                         "album_art_only":  False,
                         "volume_step":     5,
                         "auto_close":      False,
                         "show_playlist":   True,
                         }
+
+if "art" not in config.sections():
+    config["art"] = {"music_directory":  "~/Music",
+                     "image_method":     "pixcat",
+                    }
 
 if "mpd" not in config.sections():
     config["mpd"] = {"host": "localhost",
@@ -59,6 +64,7 @@ for key, action in default_bindings.items():
         keybindings[key] = action
 
 player_config = config["player"]
+art_config = config["art"]
 mpd_config = config["mpd"]
 
 
@@ -71,17 +77,13 @@ IMAGERATIO = (player_config.getint("font_width", 11),
               player_config.getint("font_height", 24)
               )
 
-# Music directory
-MUSICDIR = player_config.get("music_directory", "~/Music")
-MUSICDIR = os.path.expanduser(MUSICDIR)
-
 # MPD config
 MPDHOST = mpd_config.get("host", "localhost")
 MPDPORT = mpd_config.getint("port", 6600)
 MPDPASS = mpd_config.get("pass", False)
 
 # What to use to draw images
-IMAGEMETHOD = player_config.get("image_method", "pixcat")
+IMAGEMETHOD = art_config.get("image_method", "pixcat")
 
 # Volume step
 VOLUMESTEP = player_config.getint("volume_step", 5)
@@ -314,14 +316,51 @@ class Player:
 
             self.screen_height, self.screen_width = window_height, window_width
 
-
     def getAlbumArt(self, song_file):
+        """
+        A function that fetches the album art and saves
+        it to self.album_art_loc
+        """
+        http_base_url = art_config.get("http_base_url")
+
+        if http_base_url:
+            self._getAlbumArtFromHttpServer(http_base_url, song_file)
+        else:
+            self._getAlbumArtFromFile(song_file)
+
+
+
+    def _getAlbumArtFromHttpServer(self, base_url, song_file):
+        """
+        A function that fetches the album art from the configured
+        HTTP server, and saves it to self.album_art_loc
+        """
+
+        album = os.path.dirname(song_file)
+        album_art_url = posixpath.join(base_url, album, "cover.jpg")
+
+        try:
+            album_art_resp = requests.get(album_art_url)
+        except requests.RequestException:
+            # If any exception occurs, simply give up and show default art.
+            self.drawDefaultAlbumArt()
+
+        if album_art_resp.ok:
+            with open(self.album_art_loc, "wb") as f:
+                f.write(album_art_resp.content)
+        else:
+            self.drawDefaultAlbumArt()
+
+
+    def _getAlbumArtFromFile(self, song_file):
         """
         A function that extracts the album art from song_file and
         saves it to self.album_art_loc
         """
+        music_dir = os.path.expanduser(
+                art_config.get("music_directory", "~/Music"))
 
-        song_file_abs = os.path.join(MUSICDIR, song_file)
+        song_file_abs = os.path.join(music_dir, song_file)
 
         process = (
             ffmpeg
@@ -332,30 +371,34 @@ class Player:
         try:
             process.run(quiet=True, overwrite_output=True)
         except ffmpeg._run.Error:
-            foregroundCol = "#D8DEE9"
-            backgroundCol = "#262A33"
+            self.drawDefaultAlbumArt()
 
-            size = 512*4
 
-            art = Image.new("RGB", (size, size), color=backgroundCol)
-            d = ImageDraw.Draw(art)
+    def drawDefaultAlbumArt(self):
+        foregroundCol = "#D8DEE9"
+        backgroundCol = "#262A33"
 
-            for i in range(4):
-                offset = (i - 2) * 70
+        size = 512*4
 
-                external = size/3
+        art = Image.new("RGB", (size, size), color=backgroundCol)
+        d = ImageDraw.Draw(art)
 
-                x0 = round(external) - offset
-                y0 = round(external) + offset
-                x1 = round(external*2) - offset
-                y1 = round(external*2) + offset
+        for i in range(4):
+            offset = (i - 2) * 70
 
-                externalyx = [(x0, y0), (x1, y1)]
+            external = size/3
 
-                d.rectangle(externalyx, outline=foregroundCol, width=40)
+            x0 = round(external) - offset
+            y0 = round(external) + offset
+            x1 = round(external*2) - offset
+            y1 = round(external*2) + offset
 
-            art.resize((512, 512))
-            art.save(self.album_art_loc, "PNG")
+            externalyx = [(x0, y0), (x1, y1)]
+
+            d.rectangle(externalyx, outline=foregroundCol, width=40)
+
+        art.resize((512, 512))
+        art.save(self.album_art_loc, "PNG")
 
 
     def getSongInfo(self, song):
@@ -413,8 +456,6 @@ class Player:
                 self.selected_song = int(song["pos"])
 
             self.album, self.artist, self.title = self.getSongInfo(song)
-            self.last_song = song
-
             self.getAlbumArt(song["file"])
             self.last_song = song
 
