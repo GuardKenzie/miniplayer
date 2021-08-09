@@ -337,17 +337,23 @@ class Player:
         """
 
         album = os.path.dirname(song_file)
-        album_art_url = posixpath.join(base_url, album, "cover.jpg")
 
-        try:
-            album_art_resp = requests.get(album_art_url)
-        except requests.RequestException:
-            # If any exception occurs, simply give up and show default art.
-            self.drawDefaultAlbumArt()
+        for cover_filename in art_config.get("http_cover_filenames").split():
+            album_art_url = posixpath.join(base_url, album, cover_filename)
 
-        if album_art_resp.ok:
-            with open(self.album_art_loc, "wb") as f:
-                f.write(album_art_resp.content)
+            try:
+                album_art_resp = requests.get(album_art_url)
+            except requests.RequestException:
+                # If any exception occurs, simply give up and show default art.
+                self.drawDefaultAlbumArt()
+                break
+
+            if album_art_resp.ok:
+                with open(self.album_art_loc, "wb") as f:
+                    f.write(album_art_resp.content)
+                break
+            elif album_art_resp.status_code == 404:
+                continue
         else:
             self.drawDefaultAlbumArt()
 
