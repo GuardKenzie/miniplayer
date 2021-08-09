@@ -143,6 +143,11 @@ class Player:
 
         self.last_song = None
 
+        # Album art HTTP server
+        
+        if art_config.get("http_base_url"):
+            self.art_http_session = requests.Session()
+
         # Album art only flag
         self.album_art_only = player_config.getboolean("album_art_only", False)
 
@@ -338,11 +343,11 @@ class Player:
 
         album = os.path.dirname(song_file)
 
-        for cover_filename in art_config.get("http_cover_filenames").split():
+        for cover_filename in art_config.get("http_cover_filenames", "cover.jpg").split():
             album_art_url = posixpath.join(base_url, album, cover_filename)
 
             try:
-                album_art_resp = requests.get(album_art_url)
+                album_art_resp = self.art_http_session.get(album_art_url)
             except requests.RequestException:
                 # If any exception occurs, simply give up and show default art.
                 self.drawDefaultAlbumArt()
