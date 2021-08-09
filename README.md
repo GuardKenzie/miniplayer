@@ -36,9 +36,7 @@ The config file is located at `~/.config/miniplayer/config`. The example configu
 
 ### art
 * ***music_directory*:** The path to your music directory for extracting album art from the files.
-* ***http_base_url*:** Base URL of webserver which serves the album art for your albums. Useful for users of Android MPD clients _MAFA_ or _MPDroid_. 
-
-For more information see [the MPDroid wiki](https://github.com/abarisain/dmix/wiki/Album-Art-on-your-LAN).
+* ***http_base_url*:** Base URL of webserver which serves the album art for your albums (takes precedence over `music_directory`). Useful for users of Android MPD clients _MAFA_ or _MPDroid_. For more information see [the MPDroid wiki](https://github.com/abarisain/dmix/wiki/Album-Art-on-your-LAN).
 * ***image_method*:** The method to use for drawing album art. Available values are `pixcat` and `ueberzug`
     If you are not using Kitty, try `ueberzug`.
 
