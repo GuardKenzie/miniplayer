@@ -24,19 +24,23 @@ pip install miniplayer
 The config file is located at `~/.config/miniplayer/config`. The example configuration file, [`config.example`](config.example), has all the default values. You will need to create the file yourself.
 
 #### player
-* ***music_directory*:** The path to your music directory for extracting album art.
 * ***font_width*:** The width of your font in pixels in the actual terminal.
 * ***font_height*:** The height of your font in pixels in the actual terminal.
 
     ![font-example](https://github.com/GuardKenzie/miniplayer/blob/main/img/font.png?raw=true)
 
-* ***image_method*:** The method to use for drawing album art. Available values are `pixcat` and `ueberzug`
-    If you are not using Kitty, try `ueberzug`.
 * ***volume_step*:** The ammount (in percents) the volume will be adjusted on pressing the volume up and volume down keys.
 * ***album_art_only*:** Whether or not to only draw the album art and no other track info (`true/false`).
 * ***auto_close*:** Whether or not to automatically close the player once the mpd playlist has concluded (`true/false`).
 * ***show_playlist*:** Whether or not to show the playlist view.
 
+### art
+* ***music_directory*:** The path to your music directory for extracting album art from the files.
+* ***http_base_url*:** Base URL of webserver which serves the album art for your albums. Useful for users of Android MPD clients _MAFA_ or _MPDroid_. 
+
+For more information see [the MPDroid wiki](https://github.com/abarisain/dmix/wiki/Album-Art-on-your-LAN).
+* ***image_method*:** The method to use for drawing album art. Available values are `pixcat` and `ueberzug`
+    If you are not using Kitty, try `ueberzug`.
 
 #### mpd
 * ***host*:** The mpd host
