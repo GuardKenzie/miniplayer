@@ -24,19 +24,22 @@ pip install miniplayer
 The config file is located at `~/.config/miniplayer/config`. The example configuration file, [`config.example`](config.example), has all the default values. You will need to create the file yourself.
 
 #### player
-* ***music_directory*:** The path to your music directory for extracting album art.
 * ***font_width*:** The width of your font in pixels in the actual terminal.
 * ***font_height*:** The height of your font in pixels in the actual terminal.
 
     ![font-example](https://github.com/GuardKenzie/miniplayer/blob/main/img/font.png?raw=true)
 
-* ***image_method*:** The method to use for drawing album art. Available values are `pixcat` and `ueberzug`
-    If you are not using Kitty, try `ueberzug`.
 * ***volume_step*:** The ammount (in percents) the volume will be adjusted on pressing the volume up and volume down keys.
 * ***album_art_only*:** Whether or not to only draw the album art and no other track info (`true/false`).
 * ***auto_close*:** Whether or not to automatically close the player once the mpd playlist has concluded (`true/false`).
 * ***show_playlist*:** Whether or not to show the playlist view.
 
+#### art
+* ***music_directory*:** The path to your music directory for extracting album art from the files.
+* ***http_base_url*:** Base URL of webserver which serves the album art for your albums (takes precedence over `music_directory`). Useful for users of Android MPD clients _MAFA_ or _MPDroid_. For more information see [the MPDroid wiki](https://github.com/abarisain/dmix/wiki/Album-Art-on-your-LAN).
+* ***http_cover_filenames*:** Space separated list of filenames to use in the call to the webserver to fetch the album art.
+* ***image_method*:** The method to use for drawing album art. Available values are `pixcat` and `ueberzug`
+    If you are not using Kitty, try `ueberzug`.
 
 #### mpd
 * ***host*:** The mpd host
@@ -80,7 +83,7 @@ These keybinds can be changed by editing the config file. See the [`config.examp
     
 ## F.A.Q.
 - **Q:** Album art is not showing up.  
-   **A:** Make sure your `music_directory` is not quoted i.e. if your music directory is `~/My Music` then your config should look like `music_directory = ~/My Music`.  
+   **A:** If you're using `music_directory` for fetching your album art, make sure your it is not quoted i.e. if your music directory is `~/My Music` then your config should look like `music_directory = ~/My Music`.  
    If this does not work, try changing `image_method` from `pixcat` to `ueberzug` or vice versa.
 
 - **Q:** Album art is too big/too small.  
