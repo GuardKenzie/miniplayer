@@ -62,6 +62,28 @@ This section allows you to change the keybinds for the player. The format for a 
 * `select`
 
 
+#### theme
+This section allows you to customise the colors and progress bar
+* ***accent_color*:** The color to use for selections in the playlist 
+* ***bar_color*:** The color for the progress bar 
+* ***time_color*:** The color for the time stamp
+* ***bar_body*:** A single character to use for the body of the progress bar
+* ***bar_head*:** A single character to use for the head of the progress bar
+
+The following terminal colors can be used:
+* `black`
+* `red`
+* `green`
+* `yellow`
+* `blue`
+* `magenta`
+* `cyan`
+* `white`
+* `auto`
+
+If the `auto` color is specified, the player will try to determine the dominant color in the album art and use that.
+
+
 ## Default keybinds
 
 | Key   | function           |
@@ -79,8 +101,8 @@ This section allows you to change the keybinds for the player. The format for a 
 | Enter | Play selected song |
 
 These keybinds can be changed by editing the config file. See the [`config.example`](config.example) file for the format.
-
     
+
 ## F.A.Q.
 - **Q:** Album art is not showing up.  
    **A:** If you're using `music_directory` for fetching your album art, make sure your it is not quoted i.e. if your music directory is `~/My Music` then your config should look like `music_directory = ~/My Music`.  
