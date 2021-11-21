@@ -366,13 +366,11 @@ class Player:
             return 1/(x+1)**2
             
 
-        # Init thief
-        color_thief = ColorThief(self.album_art_loc)
-
-        # Get palette
+        # Init thief and get palette
         try:
+            color_thief = ColorThief(self.album_art_loc)
             palette = color_thief.get_palette(color_count=COLOR_COUNT, quality=100)
-        except OSError:
+        except (OSError, FileNotFoundError):
             self.color_update_needed = True
             return
 
