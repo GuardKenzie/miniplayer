@@ -10,6 +10,8 @@ import time
 import configparser
 import ueberzug.lib.v0 as ueberzug
 from PIL import Image, ImageDraw
+from colorthief import ColorThief
+import math
 
 
 # Get config
@@ -33,7 +35,15 @@ if "art" not in config.sections():
 if "mpd" not in config.sections():
     config["mpd"] = {"host": "localhost",
                      "port": "6600",
-                     }
+                    }
+
+if "theme" not in config.sections():
+    config["theme"] = {"accent_color": "yellow",
+                       "bar_color":    "green",
+                       "time_color":   "yellow",
+                       "bar_body":     "─",
+                       "bar_head":     "╶"
+                      }
 
 # Initialise keybindings
 default_bindings = {">":     "next_track",
@@ -57,6 +67,7 @@ deprecated_field_notice = ("The config option `{field}` under the `player` "
                            "section is deprecated and will be removed in the "
                            "future. Use the config option `{field}` under the "
                            "`art` section instead.")
+
 deprecated_fields_present = False
 for field in ["music_directory", "image_method"]:
     if config.has_option("player", field):
@@ -82,8 +93,9 @@ for key, action in default_bindings.items():
         keybindings[key] = action
 
 player_config = config["player"]
-art_config = config["art"]
-mpd_config = config["mpd"]
+art_config    = config["art"]
+mpd_config    = config["mpd"]
+theme_config  = config["theme"]
 
 
 # FPS
@@ -132,11 +144,35 @@ def albumArtSize(album_space, window_width):
     return image_width_px, image_width, image_height
 
 
+def colorNameToCurses(name):
+    """
+    A function that takes in the name of a color and returns
+    the corresponding curses.COLOR_{name}
+    """
 
+    converter = {
+        "black":    0,
+        "red":      1,
+        "green":    2,
+        "yellow":   3,
+        "blue":     4,
+        "magenta":  5,
+        "cyan":     6,
+        "white":    -1,
+        "auto":     "auto"
+    }
+
+    if name not in converter.keys():
+        return None
+    else:
+        return converter[name]
 
 
 class Player:
     def __init__(self):
+        # Error variable
+        self.error = None
+
         # Curses initialisation
         self.stdscr = curses.initscr()
         self.stdscr.nodelay(True)
@@ -150,8 +186,55 @@ class Player:
 
         curses.start_color()
         curses.use_default_colors()
-        curses.init_pair(1, curses.COLOR_GREEN, -1)
-        curses.init_pair(2, curses.COLOR_YELLOW, -1)
+
+        # Color initialisation
+        self.AUTO_COLOR = curses.COLOR_WHITE
+
+        
+        # Figure out which pairs we need to auto color
+        self.auto_pairs = []
+
+        color_array = [
+            theme_config.get("accent_color", "yellow"),
+            theme_config.get("time_color",   "yellow"), 
+            theme_config.get("bar_color",    "green" )
+        ]
+
+        i = 0
+        while i < len(color_array):
+            # convert color
+            color = color_array[i]
+            color = colorNameToCurses(color)
+
+            # check for auto color
+            if color == "auto":
+                color = self.AUTO_COLOR
+                self.auto_pairs.append(i+1)     
+
+            # Verify that the color is ok
+            if color is None:
+                self.error = f"'{color_array[i]}' is not a valid color!"
+                raise ValueError(self.error)
+
+            color_array[i] = color
+
+            i += 1
+
+        # Init pairs
+        curses.init_pair(1, color_array[0],     -1) # accent color
+        curses.init_pair(2, color_array[1],     -1) # time color
+        curses.init_pair(3, color_array[2],     -1) # bar color
+
+        # Get progress bar characters
+        self.bar_body = theme_config.get("bar_body", "─")
+        self.bar_head = theme_config.get("bar_head", "╶")
+
+        # Check if bar head and bar body are of proper length
+        if len(self.bar_body) != 1:
+            raise ValueError("Progress bar body must be 1 character long! Not '{bar_body}'")
+    
+        if len(self.bar_head) != 1:
+            raise ValueError("Progress bar head must be 1 character long! Not '{bar_head}'")
 
         # MPD init
         self.client = MPDClient()
@@ -214,6 +297,9 @@ class Player:
         # Update needed flag
         self.update_needed = False
 
+        # Color update needed flag
+        self.color_update_needed = bool(self.auto_pairs)
+
         # Flag to check if any music has been played
         self.has_music_been_played = False
 
@@ -222,6 +308,98 @@ class Player:
 
         # Selected song in playlist
         self.selected_song = 0
+
+
+    def getDominantColor(self):
+        """
+        A function that finds the dominant color in the album art,
+        finds the closest curses color to that and sets the foreground
+        color.
+        """
+
+        COLOR_COUNT = 5
+
+        def colorScore(r, g, b):
+            """
+            A function that takes in the RGB representation of a
+            color and assigns it a score based on its perceived
+            brightness and saturation.
+
+            The score is calculated as follows:
+                1. Convert the RGB values to HSV saturation
+                2. Calculate brightness with
+                        0.2126*r + 0.7152*g + 0.0722*b
+                3. Check if either the brightness is below
+                   a threshold or the color is not very
+                   saturated. If so, assign it a score of
+                        mean(saturation, brightness) / 100
+                4. Otherwise, assign it a score of
+                        sqrt(brightness^2 * saturation)
+            """
+            # Map RGB to [0,1]
+            r /= 255
+            g /= 255
+            b /= 255
+
+            maximum = max(r, g, b)
+            minimum = min(r, g, b)
+
+            # Calculate saturation
+            saturation = 0
+            if maximum > 0:
+                saturation = (maximum - minimum) / (maximum)
+
+            # Calculate brightness
+            brightness = (0.2126*r + 0.7152*g + 0.0722*b)
+
+            # Brightness and saturation thresholds
+            if brightness < 0.35 or saturation < 0.1:
+                return 0.01 * (brightness + saturation) / 2
+            else:
+                return math.sqrt(brightness**2 * saturation)
+
+        def weight(x):
+            """
+            A weight function to transform the color scores based
+            on their frequency
+            """
+            return 1/(x+1)**2
+            
+
+        # Init thief
+        color_thief = ColorThief(self.album_art_loc)
+
+        # Get palette
+        try:
+            palette = color_thief.get_palette(color_count=COLOR_COUNT, quality=100)
+        except OSError:
+            self.color_update_needed = True
+            return
+
+        # Create weight list and assign weights
+        weight_list = [weight(x/COLOR_COUNT) for x in range(COLOR_COUNT)]
+        palette = list(zip(weight_list, palette))
+
+        # Sort palette based on score
+        palette = sorted(
+            palette, 
+            reverse=True, 
+            key=lambda x: x[0]*colorScore(*x[1])
+        )
+
+        # Get the dominant color
+        dominant_color = palette[0][1]
+
+        # Cast the color to curses range
+        col = [round(1000 * val/255) for val in dominant_color]
+
+        # Set the color
+        curses.init_color(self.AUTO_COLOR, *col)
+        
+        for pair in self.auto_pairs:
+            curses.init_pair(pair, self.AUTO_COLOR, -1)
+
+        self.color_update_needed = False
 
 
     def playlistFits(self, height, width):
@@ -487,6 +665,10 @@ class Player:
             self.album, self.artist, self.title = self.getSongInfo(song)
             self.getAlbumArt(song["file"])
             self.last_song = song
+            
+            # Update dominant color
+            if self.auto_pairs:
+                self.getDominantColor()
 
             return 0
 
@@ -645,8 +827,8 @@ class Player:
 
         self.art_win.addstr(
             self.text_start + 2, 0,
-            "-"*(int((self.art_window_width - 1) * self.progress)) + ">",
-            curses.color_pair(1)
+            self.bar_body*(int((self.art_window_width - 1) * self.progress)) + self.bar_head,
+            curses.color_pair(3)
         )
 
         # Duration string
@@ -703,10 +885,10 @@ class Player:
             pair = 0
 
             if playlist_item == current_song:
-                pair = curses.color_pair(2)
+                pair = curses.color_pair(1)
 
             if playlist_item == playlist[selected_pos]:
-                pair = curses.color_pair(2) | curses.A_REVERSE
+                pair = curses.color_pair(1) | curses.A_REVERSE
 
             # Move and write text
             try:
@@ -899,6 +1081,9 @@ class Player:
                         self.hideAlbumArt()
                         self.drawHelp()
 
+                    if self.color_update_needed:
+                        self.getDominantColor()
+
                     self.update_needed = False
 
                 # Update control_cycle once a second if it is not 0
@@ -913,22 +1098,23 @@ class Player:
                 i = (i + 1) % FPS
 
         except KeyboardInterrupt:
-            error = False
+            self.error = False or self.error
         except pixcat.terminal.KittyAnswerTimeout:
-            error = "Kitty did not answer in time. Are you using Kitty?"
+            self.error = "Kitty did not answer in time. Are you using Kitty?"
         finally:
             curses.nocbreak()
             curses.endwin()
             self.client.close()
             self.client.disconnect()
-            if error:
-                print(error)
+            if self.error:
+                print(self.error)
 
 
 try:
     player = Player()
     player.loop()
 except ConnectionRefusedError:
+    print(f"Could not connect to mpd on {MPDHOST}:{MPDPORT}")
+finally:
     curses.nocbreak()
     curses.endwin()
-    print(f"Could not connect to mpd on {MPDHOST}:{MPDPORT}")
