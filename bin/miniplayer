@@ -711,6 +711,8 @@ class Player:
 
         anytime_keys = ["quit", "help", "select_up", "select_down", "select"]
 
+        playlist_keys = ["select_up", "select_down", "select"]
+
         special_key_map = {curses.KEY_UP:     "up",
                            curses.KEY_DOWN:   "down",
                            curses.KEY_LEFT:   "left",
@@ -745,6 +747,10 @@ class Player:
             else:
                 action = keybindings[keyChar]
 
+            # Check if key is a playlist key but no playlist showing
+            if action in playlist_keys and not self.draw_playlist:
+                key = self.stdscr.getch()
+                continue
 
             if stopped and action not in anytime_keys:
                 key = self.stdscr.getch()
