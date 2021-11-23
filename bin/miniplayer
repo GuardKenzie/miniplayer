@@ -810,9 +810,11 @@ class Player:
             elif action == "repeat":
                 self.repeat = int(not self.repeat)
                 self.client.repeat(self.repeat)
+                self.update_needed = True
 
             elif action == "shuffle":
                 self.client.shuffle()
+                self.update_needed = True
 
 
             key = self.stdscr.getch()
