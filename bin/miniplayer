@@ -719,7 +719,9 @@ class Player:
                            curses.KEY_RIGHT:  "right",
                            curses.KEY_ENTER:  "enter",
                            10:                "enter",
-                           32:                "space"
+                           32:                "space",
+                           330:               "delete",
+                           263:               "backspace"
                            }
 
         if self.checkSongUpdate() == 1:
