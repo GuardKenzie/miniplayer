@@ -46,19 +46,20 @@ if "theme" not in config.sections():
                       }
 
 # Initialise keybindings
-default_bindings = {">":     "next_track",
-                    "<":     "last_track",
-                    "+":     "volume_up",
-                    "-":     "volume_down",
-                    "p":     "play_pause",
-                    "q":     "quit",
-                    "h":     "help",
-                    "i":     "toggle_info",
-                    "down":  "select_down",
-                    "up":    "select_up",
-                    "enter": "select",
-                    "x":     "shuffle",
-                    "r":     "repeat"
+default_bindings = {">":      "next_track",
+                    "<":      "last_track",
+                    "+":      "volume_up",
+                    "-":      "volume_down",
+                    "p":      "play_pause",
+                    "q":      "quit",
+                    "h":      "help",
+                    "i":      "toggle_info",
+                    "down":   "select_down",
+                    "up":     "select_up",
+                    "enter":  "select",
+                    "x":      "shuffle",
+                    "r":      "repeat",
+                    "delete": "delete"
                     }
 
 if "keybindings" not in config.sections():
@@ -711,7 +712,7 @@ class Player:
 
         anytime_keys = ["quit", "help", "select_up", "select_down", "select"]
 
-        playlist_keys = ["select_up", "select_down", "select"]
+        playlist_keys = ["delete", "select_up", "select_down", "select"]
 
         special_key_map = {curses.KEY_UP:     "up",
                            curses.KEY_DOWN:   "down",
@@ -816,6 +817,9 @@ class Player:
                 self.client.shuffle()
                 self.update_needed = True
 
+            elif action == "delete":
+                self.client.delete(self.selected_song % playlist_length)
+                self.update_needed = True
 
             key = self.stdscr.getch()
 
