@@ -56,7 +56,9 @@ default_bindings = {">":     "next_track",
                     "i":     "toggle_info",
                     "down":  "select_down",
                     "up":    "select_up",
-                    "enter": "select"
+                    "enter": "select",
+                    "x":     "shuffle",
+                    "r":     "repeat"
                     }
 
 if "keybindings" not in config.sections():
@@ -243,6 +245,15 @@ class Player:
             self.client.password(MPDPASS)
 
         self.last_song = None
+
+        # Set repeat flag
+        current_status = self.client.status()
+
+        if "repeat" in current_status.keys():
+            self.repeat = current_status["repeat"]
+
+        else:
+            self.repeat = 0
 
         # Album art HTTP server
         
@@ -788,6 +799,13 @@ class Player:
                     self.update_needed = True
                     self.last_song = None
 
+            elif action == "repeat":
+                self.repeat = int(not self.repeat)
+                self.client.repeat(self.repeat)
+
+            elif action == "shuffle":
+                self.client.shuffle()
+
 
             key = self.stdscr.getch()
 
@@ -837,6 +855,14 @@ class Player:
             f"{time_string:>{self.art_window_width}}",
             curses.color_pair(2)
         )
+
+        # Repeat string
+        if self.repeat:
+            repeat_string = "r"
+            self.art_win.addstr(
+                self.text_start + 3, 0,
+                repeat_string,
+            )
 
         self.art_win.refresh()
 
