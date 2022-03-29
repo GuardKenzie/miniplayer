@@ -739,7 +739,7 @@ class Player:
             if key in special_key_map.keys():
                 keyChar = special_key_map[key]
             else:
-                keyChar = chr(key).lower()
+                keyChar = chr(key)
 
             # Get playlist length
             playlist_length = len(self.client.playlist())
