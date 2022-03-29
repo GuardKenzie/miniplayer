@@ -23,7 +23,7 @@ pip install miniplayer
 
 The config file is located at `~/.config/miniplayer/config`. The example configuration file, [`config.example`](config.example), has all the default values. You will need to create the file yourself.
 
-#### player
+### player
 Wow, that volume step is huge. Why isn't my album art centered?
 
 | Option         | Description                                                                                           |
@@ -40,7 +40,7 @@ The `font_width` and `font_height` options are used to center the album art prop
 ![font-example](https://github.com/GuardKenzie/miniplayer/blob/main/img/font.png?raw=true)
 
 
-#### art
+### art
 Why listen to music if you can't look at the pretty album art?
 
 | Option               | Description                                                                                   |
@@ -50,7 +50,7 @@ Why listen to music if you can't look at the pretty album art?
 | http_cover_filenames | Space separated list of filenames to use in the call to the webserver to fetch the album art. |
 | image_method         | The method to use for drawing album art. Available values are `pixcat` and `ueberzug`.        |
 
-#### mpd
+### mpd
 Tell me your mpd address please!
 
 | Option | Description      |
@@ -60,7 +60,7 @@ Tell me your mpd address please!
 | pass   | The mpd password |
 
 
-#### keybindings
+### keybindings
 This section allows you to change the keybinds for the player. The format for a keybind is `key = action` (for example `p = play_pause` or `left = last_track`). 
 
 To use `shift` as a modifier, capitalize the keybinding (i.e. `shift + p` becomes `P` and `shift + left` becomes `Left`). **This only works for alpha keys and the arrow keys!**
@@ -85,7 +85,7 @@ To use `shift` as a modifier, capitalize the keybinding (i.e. `shift + p` become
 | `delete`          |
 
 
-#### theme
+### theme
 Make it yours!
 
 | Option       | Description                                                |
