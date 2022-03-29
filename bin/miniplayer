@@ -873,7 +873,9 @@ class Player:
 
         self.art_win.addstr(
             self.text_start + 2, 0,
-            self.bar_body*(int((self.art_window_width - 1) * self.progress)) + self.bar_head,
+            self.bar_body * int((self.art_window_width - 1) * self.progress) +
+            self.bar_head +
+            " " * int(self.art_window_width * (1 - self.progress)),
             curses.color_pair(3)
         )
 
