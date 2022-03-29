@@ -60,7 +60,9 @@ default_bindings = {">":      "next_track",
                     "enter":  "select",
                     "x":      "shuffle",
                     "r":      "repeat",
-                    "delete": "delete"
+                    "delete": "delete",
+                    "Up":     "move_up",
+                    "Down":   "move_down"
                     }
 
 if "keybindings" not in config.sections():
@@ -700,20 +702,11 @@ class Player:
     def handleKeypress(self):
         """
         A function to handle keypresses
-
-        Keys:
-            '>' -- Next track
-            '<' -- Last track
-            '+' -- Volume up +5
-            '-' -- Volume down -5
-            'p' -- Play/pause
-            'q' -- Quit
-            'h' -- Help
         """
 
         anytime_keys = ["quit", "help", "select_up", "select_down", "select"]
 
-        playlist_keys = ["delete", "select_up", "select_down", "select"]
+        playlist_keys = ["delete", "select_up", "select_down", "select", "move_up", "move_down"]
 
         special_key_map = {curses.KEY_UP:     "up",
                            curses.KEY_DOWN:   "down",
@@ -812,6 +805,24 @@ class Player:
                     self.client.play(self.selected_song % playlist_length)
                     self.update_needed = True
                     self.last_song = None
+
+            elif action == "move_up":
+                self.control_cycle = 1
+
+                # No moving up if we're already at the top!
+                if self.selected_song > 0:
+                    self.client.swap(self.selected_song, self.selected_song - 1)
+                    self.selected_song -= 1 
+                    self.update_needed  = True
+
+            elif action == "move_down":
+                self.control_cycle = 1
+
+                # No moving down if we're already at the bottom!
+                if self.selected_song < playlist_length - 1:
+                    self.client.swap(self.selected_song, self.selected_song + 1)
+                    self.selected_song += 1
+                    self.update_needed  = True
 
             elif action == "repeat":
                 self.repeat = int(not self.repeat)
