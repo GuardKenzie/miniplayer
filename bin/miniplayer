@@ -638,6 +638,9 @@ class Player:
         except KeyError:
             artist = ""
 
+        if type(artist) is list:
+            artist = ", ".join(artist)
+
         try:
             title = song["title"]
         except KeyError:
