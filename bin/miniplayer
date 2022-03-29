@@ -16,6 +16,7 @@ import math
 
 # Get config
 config = configparser.ConfigParser()
+config.optionxform = str
 config.read(os.path.expanduser("~/.config/miniplayer/config"))
 
 if "player" not in config.sections():
