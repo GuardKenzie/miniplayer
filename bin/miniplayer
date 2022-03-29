@@ -16,6 +16,7 @@ import math
 
 # Get config
 config = configparser.ConfigParser()
+config.optionxform = str
 config.read(os.path.expanduser("~/.config/miniplayer/config"))
 
 if "player" not in config.sections():
@@ -46,17 +47,22 @@ if "theme" not in config.sections():
                       }
 
 # Initialise keybindings
-default_bindings = {">":     "next_track",
-                    "<":     "last_track",
-                    "+":     "volume_up",
-                    "-":     "volume_down",
-                    "p":     "play_pause",
-                    "q":     "quit",
-                    "h":     "help",
-                    "i":     "toggle_info",
-                    "down":  "select_down",
-                    "up":    "select_up",
-                    "enter": "select"
+default_bindings = {">":      "next_track",
+                    "<":      "last_track",
+                    "+":      "volume_up",
+                    "-":      "volume_down",
+                    "p":      "play_pause",
+                    "q":      "quit",
+                    "h":      "help",
+                    "i":      "toggle_info",
+                    "down":   "select_down",
+                    "up":     "select_up",
+                    "enter":  "select",
+                    "x":      "shuffle",
+                    "r":      "repeat",
+                    "delete": "delete",
+                    "Up":     "move_up",
+                    "Down":   "move_down"
                     }
 
 if "keybindings" not in config.sections():
@@ -243,6 +249,15 @@ class Player:
             self.client.password(MPDPASS)
 
         self.last_song = None
+
+        # Set repeat flag
+        current_status = self.client.status()
+
+        if "repeat" in current_status.keys():
+            self.repeat = current_status["repeat"]
+
+        else:
+            self.repeat = 0
 
         # Album art HTTP server
         
@@ -690,26 +705,25 @@ class Player:
     def handleKeypress(self):
         """
         A function to handle keypresses
-
-        Keys:
-            '>' -- Next track
-            '<' -- Last track
-            '+' -- Volume up +5
-            '-' -- Volume down -5
-            'p' -- Play/pause
-            'q' -- Quit
-            'h' -- Help
         """
 
         anytime_keys = ["quit", "help", "select_up", "select_down", "select"]
+
+        playlist_keys = ["delete", "select_up", "select_down", "select", "move_up", "move_down"]
 
         special_key_map = {curses.KEY_UP:     "up",
                            curses.KEY_DOWN:   "down",
                            curses.KEY_LEFT:   "left",
                            curses.KEY_RIGHT:  "right",
+                           337:               "Up",
+                           336:               "Down",
+                           393:               "Left",
+                           402:               "Right",
                            curses.KEY_ENTER:  "enter",
                            10:                "enter",
-                           32:                "space"
+                           32:                "space",
+                           330:               "delete",
+                           263:               "backspace"
                            }
 
         if self.checkSongUpdate() == 1:
@@ -737,6 +751,10 @@ class Player:
             else:
                 action = keybindings[keyChar]
 
+            # Check if key is a playlist key but no playlist showing
+            if action in playlist_keys and not self.draw_playlist:
+                key = self.stdscr.getch()
+                continue
 
             if stopped and action not in anytime_keys:
                 key = self.stdscr.getch()
@@ -791,6 +809,36 @@ class Player:
                     self.update_needed = True
                     self.last_song = None
 
+            elif action == "move_up":
+                self.control_cycle = 1
+
+                # No moving up if we're already at the top!
+                if self.selected_song > 0:
+                    self.client.swap(self.selected_song, self.selected_song - 1)
+                    self.selected_song -= 1 
+                    self.update_needed  = True
+
+            elif action == "move_down":
+                self.control_cycle = 1
+
+                # No moving down if we're already at the bottom!
+                if self.selected_song < playlist_length - 1:
+                    self.client.swap(self.selected_song, self.selected_song + 1)
+                    self.selected_song += 1
+                    self.update_needed  = True
+
+            elif action == "repeat":
+                self.repeat = int(not self.repeat)
+                self.client.repeat(self.repeat)
+                self.update_needed = True
+
+            elif action == "shuffle":
+                self.client.shuffle()
+                self.update_needed = True
+
+            elif action == "delete":
+                self.client.delete(self.selected_song % playlist_length)
+                self.update_needed = True
 
             key = self.stdscr.getch()
 
@@ -828,7 +876,9 @@ class Player:
 
         self.art_win.addstr(
             self.text_start + 2, 0,
-            self.bar_body*(int((self.art_window_width - 1) * self.progress)) + self.bar_head,
+            self.bar_body * int((self.art_window_width - 1) * self.progress) +
+            self.bar_head +
+            " " * int(self.art_window_width * (1 - self.progress)),
             curses.color_pair(3)
         )
 
@@ -840,6 +890,14 @@ class Player:
             f"{time_string:>{self.art_window_width}}",
             curses.color_pair(2)
         )
+
+        # Repeat string
+        if self.repeat:
+            repeat_string = "r"
+            self.art_win.addstr(
+                self.text_start + 3, 0,
+                repeat_string,
+            )
 
         self.art_win.refresh()
 

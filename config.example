@@ -18,17 +18,22 @@ port   = 6600
 # pass = example
 
 # [keybindings]
-# >     = next_track
-# <     = last_track
-# +     = volume_up
-# -     = volume_down
-# p     = play_pause
-# q     = quit
-# h     = help
-# i     = toggle_info
-# up    = select_up
-# down  = select_down
-# enter = select
+# >      = next_track
+# <      = last_track
+# +      = volume_up
+# -      = volume_down
+# p      = play_pause
+# q      = quit
+# h      = help
+# i      = toggle_info
+# up     = select_up
+# down   = select_down
+# enter  = select
+# Up     = move_up
+# Down   = move_down
+# delete = delete
+# x      = shuffle
+# r      = repeat
 
 # [theme]
 # # If a color is set to "auto", it will automatically pick the color based on the album art
