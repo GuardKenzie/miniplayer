@@ -132,8 +132,7 @@ These keybinds can be changed by editing the config file. See the [`config.examp
 
 ## F.A.Q.
 - **Q:** Album art is not showing up.  
-   **A:** If you're using `music_directory` for fetching your album art, make sure your it is not quoted i.e. if your music directory is `~/My Music` then your config should look like `music_directory = ~/My Music`.  
-   If this does not work, try changing `image_method` from `pixcat` to `ueberzug` or vice versa.
+   **A:** Try changing `image_method` from `pixcat` to `ueberzug` or vice versa.
 
 - **Q:** Album art is too big/too small.  
    **A:** You need to configure `font_height` and `font_width`. Their values should be the actual pixel height and width of a character in your terminal.
