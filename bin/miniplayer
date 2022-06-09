@@ -68,24 +68,6 @@ default_bindings = {">":      "next_track",
 if "keybindings" not in config.sections():
     config["keybindings"] = default_bindings
 
-# Ensure compatibility with older configs
-deprecated_field_notice = ("The config option `{field}` under the `player` "
-                           "section is deprecated and will be removed in the "
-                           "future. Use the config option `{field}` under the "
-                           "`art` section instead.")
-
-deprecated_fields_present = False
-for field in ["music_directory", "image_method"]:
-    if config.has_option("player", field):
-        deprecated_fields_present = True
-        print(deprecated_field_notice.format(field=field))
-        
-        if not config.has_option("art", field):
-            config["art"][field] = config["player"][field]
-
-if deprecated_fields_present:
-    input("(Press <Enter> to continue) ...")
-
 # Load configured keybindings
 keybindings = config["keybindings"]
 
