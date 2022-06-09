@@ -8,9 +8,6 @@ show_playlist   = true
 
 [art]
 image_method    = pixcat
-music_directory = ~/Music
-# http_base_url = http://localhost:6667/cover-art
-# http_cover_filenames = cover.jpg cover.png folder.jpg folder.png art.jpg art.png artwork.jpg artwork.png
 
 [mpd]
 host   = localhost

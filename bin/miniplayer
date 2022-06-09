@@ -1,10 +1,7 @@
 #!/bin/python
 import curses
 import os
-import posixpath
-import requests
-from mpd import MPDClient
-import ffmpeg
+from mpd import MPDClient, CommandError
 import pixcat
 import time
 import configparser
@@ -29,9 +26,7 @@ if "player" not in config.sections():
                         }
 
 if "art" not in config.sections():
-    config["art"] = {"music_directory":  "~/Music",
-                     "image_method":     "pixcat",
-                    }
+    config["art"] = {"image_method": "pixcat"}
 
 if "mpd" not in config.sections():
     config["mpd"] = {"host": "localhost",
@@ -209,9 +204,9 @@ class Player:
             i += 1
 
         # Init pairs
-        curses.init_pair(1, color_array[0],     -1) # accent color
-        curses.init_pair(2, color_array[1],     -1) # time color
-        curses.init_pair(3, color_array[2],     -1) # bar color
+        curses.init_pair(1, color_array[0], -1) # accent color
+        curses.init_pair(2, color_array[1], -1) # time color
+        curses.init_pair(3, color_array[2], -1) # bar color
 
         # Get progress bar characters
         self.bar_body = theme_config.get("bar_body", "─")
@@ -240,11 +235,6 @@ class Player:
 
         else:
             self.repeat = 0
-
-        # Album art HTTP server
-        
-        if art_config.get("http_base_url"):
-            self.art_http_session = requests.Session()
 
         # Album art only flag
         self.album_art_only = player_config.getboolean("album_art_only", False)
@@ -512,67 +502,19 @@ class Player:
 
             self.screen_height, self.screen_width = window_height, window_width
 
+
     def getAlbumArt(self, song_file):
         """
         A function that fetches the album art and saves
         it to self.album_art_loc
         """
-        http_base_url = art_config.get("http_base_url")
-
-        if http_base_url:
-            self._getAlbumArtFromHttpServer(http_base_url, song_file)
-        else:
-            self._getAlbumArtFromFile(song_file)
-
-
-
-    def _getAlbumArtFromHttpServer(self, base_url, song_file):
-        """
-        A function that fetches the album art from the configured
-        HTTP server, and saves it to self.album_art_loc
-        """
-
-        album = os.path.dirname(song_file)
-
-        for cover_filename in art_config.get("http_cover_filenames", "cover.jpg").split():
-            album_art_url = posixpath.join(base_url, album, cover_filename)
-
-            try:
-                album_art_resp = self.art_http_session.get(album_art_url)
-            except requests.RequestException:
-                # If any exception occurs, simply give up and show default art.
-                self.drawDefaultAlbumArt()
-                break
-
-            if album_art_resp.ok:
-                with open(self.album_art_loc, "wb") as f:
-                    f.write(album_art_resp.content)
-                break
-            elif album_art_resp.status_code == 404:
-                continue
-        else:
-            self.drawDefaultAlbumArt()
-
-
-    def _getAlbumArtFromFile(self, song_file):
-        """
-        A function that extracts the album art from song_file and
-        saves it to self.album_art_loc
-        """
-        music_dir = os.path.expanduser(
-                art_config.get("music_directory", "~/Music"))
-
-        song_file_abs = os.path.join(music_dir, song_file)
-
-        process = (
-            ffmpeg
-            .input(song_file_abs)
-            .output(self.album_art_loc)
-        )
-
         try:
-            process.run(quiet=True, overwrite_output=True)
-        except ffmpeg._run.Error:
+            albumart_data = self.client.albumart(song_file)
+
+            with open(self.album_art_loc, "wb") as f:
+                f.write(albumart_data["binary"])
+
+        except CommandError:
             self.drawDefaultAlbumArt()
 
 
