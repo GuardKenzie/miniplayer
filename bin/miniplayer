@@ -4,6 +4,7 @@ import os
 from mpd import MPDClient, CommandError
 import pixcat
 import time
+import xdg
 import configparser
 import ueberzug.lib.v0 as ueberzug
 from PIL import Image, ImageDraw
@@ -14,7 +15,7 @@ import math
 # Get config
 config = configparser.ConfigParser()
 config.optionxform = str
-config.read(os.path.expanduser("~/.config/miniplayer/config"))
+config.read(os.path.join(xdg.BaseDirectory.xdg_config_home, "miniplayer", "config"))
 
 if "player" not in config.sections():
     config["player"] = {"font_width":      11,
