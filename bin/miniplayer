@@ -1052,6 +1052,8 @@ class Player:
                 "art",
                 scaler=ueberzug.ScalerOption.FIT_CONTAIN.value
             )
+        # Flush all input
+        curses.flushinp()
 
         # Check if we need to recalculate window size
         # because of album art only initially
