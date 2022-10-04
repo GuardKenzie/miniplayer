@@ -227,15 +227,6 @@ class Player:
 
         self.last_song = None
 
-        # Set repeat flag
-        current_status = self.client.status()
-
-        if "repeat" in current_status.keys():
-            self.repeat = current_status["repeat"]
-
-        else:
-            self.repeat = 0
-
         # Album art only flag
         self.album_art_only = player_config.getboolean("album_art_only", False)
 
