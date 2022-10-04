@@ -743,9 +743,19 @@ class Player:
                     self.update_needed  = True
 
             elif action == "repeat":
-                self.repeat = int(not self.repeat)
-                self.client.repeat(self.repeat)
-                self.update_needed = True
+                # Find repeat state
+                repeat = None
+                for key, value in self.client.status().items():
+                    if key == "repeat":
+                        try:
+                            repeat = int(value)
+                        except ValueError:
+                            break
+
+                # Update repeat state if it exists
+                if repeat is not None:
+                    self.client.repeat(int(not repeat))
+                    self.update_needed = True
 
             elif action == "shuffle":
                 self.client.shuffle()
