@@ -817,7 +817,17 @@ class Player:
         )
 
         # Repeat string
-        if self.repeat:
+        repeat_state = None
+        for key, state in self.client.status().items():
+            # Check if we got repeat
+            if key == "repeat":
+                try:
+                    # Cast repeat state to int
+                    repeat_state = int(state)
+                except ValueError:
+                    break
+
+        if repeat_state:
             repeat_string = "r"
             self.art_win.addstr(
                 self.text_start + 3, 0,
