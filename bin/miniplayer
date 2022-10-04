@@ -227,15 +227,6 @@ class Player:
 
         self.last_song = None
 
-        # Set repeat flag
-        current_status = self.client.status()
-
-        if "repeat" in current_status.keys():
-            self.repeat = current_status["repeat"]
-
-        else:
-            self.repeat = 0
-
         # Album art only flag
         self.album_art_only = player_config.getboolean("album_art_only", False)
 
@@ -752,9 +743,19 @@ class Player:
                     self.update_needed  = True
 
             elif action == "repeat":
-                self.repeat = int(not self.repeat)
-                self.client.repeat(self.repeat)
-                self.update_needed = True
+                # Find repeat state
+                repeat = None
+                for key, value in self.client.status().items():
+                    if key == "repeat":
+                        try:
+                            repeat = int(value)
+                        except ValueError:
+                            break
+
+                # Update repeat state if it exists
+                if repeat is not None:
+                    self.client.repeat(int(not repeat))
+                    self.update_needed = True
 
             elif action == "shuffle":
                 self.client.shuffle()
@@ -816,7 +817,17 @@ class Player:
         )
 
         # Repeat string
-        if self.repeat:
+        repeat_state = None
+        for key, state in self.client.status().items():
+            # Check if we got repeat
+            if key == "repeat":
+                try:
+                    # Cast repeat state to int
+                    repeat_state = int(state)
+                except ValueError:
+                    break
+
+        if repeat_state:
             repeat_string = "r"
             self.art_win.addstr(
                 self.text_start + 3, 0,
