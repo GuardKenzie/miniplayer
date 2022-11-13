@@ -135,7 +135,7 @@ These keybinds can be changed by editing the config file. See the [`config.examp
 
 ## F.A.Q.
 - **Q:** Album art is not showing up.  
-   **A1:** Try changing `image_method` from `pixcat` to `ueberzug` or vice versa.
+   **A1:** Try changing `image_method` from `pixcat` to `ueberzug` or vice versa.  
    **A2:** Try changing `mpd_method`from `albumart` to `readpicture` or vice versa.
 
 - **Q:** Album art is too big/too small.  
