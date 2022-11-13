@@ -22,13 +22,11 @@ if "player" not in config.sections():
                         "album_art_only":  False,
                         "volume_step":     5,
                         "auto_close":      False,
-                        "show_playlist":   True
+                        "show_playlist":   True,
                         }
 
 if "art" not in config.sections():
-    config["art"] = {"image_method": "pixcat",
-                     "mpd_method":   "albumart"
-                     }
+    config["art"] = {"image_method": "pixcat"}
 
 if "mpd" not in config.sections():
     config["mpd"] = {"host": "localhost",
@@ -99,7 +97,6 @@ MPDPASS = mpd_config.get("pass", False)
 
 # What to use to draw images
 IMAGEMETHOD = art_config.get("image_method", "pixcat")
-MPDMETHOD   = art_config.get("mpd_method", "albumart")
 
 # Volume step
 VOLUMESTEP = player_config.getint("volume_step", 5)
@@ -502,13 +499,8 @@ class Player:
         A function that fetches the album art and saves
         it to self.album_art_loc
         """
-
         try:
-            if MPDMETHOD == "albumart":
-                albumart_data = self.client.albumart(song_file)
-
-            elif MPDMETHOD == "readpicture":
-                albumart_data = self.client.readpicture(song_file)
+            albumart_data = self.client.albumart(song_file)
 
             with open(self.album_art_loc, "wb") as f:
                 f.write(albumart_data["binary"])
