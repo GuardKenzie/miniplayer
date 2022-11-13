@@ -22,7 +22,7 @@ if "player" not in config.sections():
                         "album_art_only":  False,
                         "volume_step":     5,
                         "auto_close":      False,
-                        "show_playlist":   True,
+                        "show_playlist":   True
                         }
 
 if "art" not in config.sections():
@@ -30,7 +30,7 @@ if "art" not in config.sections():
 
 if "mpd" not in config.sections():
     config["mpd"] = {"host": "localhost",
-                     "port": "6600",
+                     "port": "6600"
                     }
 
 if "theme" not in config.sections():
