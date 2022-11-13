@@ -8,6 +8,7 @@ show_playlist   = true
 
 [art]
 image_method    = pixcat
+mpd_method      = albumart
 
 [mpd]
 host   = localhost

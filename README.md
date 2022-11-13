@@ -43,9 +43,12 @@ The `font_width` and `font_height` options are used to center the album art prop
 ### art
 Why listen to music if you can't look at the pretty album art?
 
-| Option               | Description                                                                                   |
-| -------------------- | --------------------------------------------------------------------------------------------- |
-| image_method         | The method to use for drawing album art. Available values are `pixcat` and `ueberzug`.        |
+| Option               | Description                                                                                             |
+| -------------------- | ------------------------------------------------------------------------------------------------------- |
+| image_method         | The method to use for drawing album art. Available values are `pixcat` and `ueberzug`.                  |
+| mpd_method           | The method mpd should use to retrieve the album art. Available values are `albumart` and `readpicture`. |
+
+Use `albumart` if song is contained in an album folder, otherwise use `readpicture` if image was directly embedded in the audio file.
 
 ### mpd
 Tell me your mpd address please!
@@ -132,7 +135,8 @@ These keybinds can be changed by editing the config file. See the [`config.examp
 
 ## F.A.Q.
 - **Q:** Album art is not showing up.  
-   **A:** Try changing `image_method` from `pixcat` to `ueberzug` or vice versa.
+   **A1:** Try changing `image_method` from `pixcat` to `ueberzug` or vice versa.
+   **A2:** Try changing `mpd_method`from `albumart` to `readpicture` or vice versa.
 
 - **Q:** Album art is too big/too small.  
    **A:** You need to configure `font_height` and `font_width`. Their values should be the actual pixel height and width of a character in your terminal.
