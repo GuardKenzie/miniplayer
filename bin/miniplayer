@@ -499,14 +499,29 @@ class Player:
         A function that fetches the album art and saves
         it to self.album_art_loc
         """
+
+        readpictureFailed = False
         try:
-            albumart_data = self.client.albumart(song_file)
+            albumart_data = self.client.readpicture(song_file)
 
             with open(self.album_art_loc, "wb") as f:
                 f.write(albumart_data["binary"])
 
         except CommandError:
-            self.drawDefaultAlbumArt()
+            readpictureFailed = True
+
+
+        # If readpicture fails, try mpd's albumart function
+        if readpictureFailed:
+            try:
+                albumart_data = self.client.albumart(song_file)
+
+                with open(self.album_art_loc, "wb") as f:
+                    f.write(albumart_data["binary"])
+
+            except CommandError:
+                # If this also fails, just draw fallback image
+                self.drawDefaultAlbumArt()
 
 
     def drawDefaultAlbumArt(self):
