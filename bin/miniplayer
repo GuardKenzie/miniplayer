@@ -9,12 +9,27 @@ import ueberzug.lib.v0 as ueberzug
 from PIL import Image, ImageDraw
 from colorthief import ColorThief
 import math
+from pathlib import Path
 
 
-# Get config
+# Get config directory
+config_dir = Path(
+    os.environ.get(
+        "XDG_CONFIG_HOME",
+        default = "~/.config"
+    )
+)
+
+config_dir = config_dir.expanduser()
+
+# Check if config dir exists
+if not config_dir.is_dir():
+    config_dir = Path("~/.config").expanduser()
+
+# Init config
 config = configparser.ConfigParser()
 config.optionxform = str
-config.read(os.path.expanduser("~/.config/miniplayer/config"))
+config.read(config_dir / "miniplayer" / "config")
 
 if "player" not in config.sections():
     config["player"] = {"font_width":      11,
