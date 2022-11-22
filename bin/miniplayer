@@ -500,28 +500,22 @@ class Player:
         it to self.album_art_loc
         """
 
-        readpictureFailed = False
-        try:
-            albumart_data = self.client.readpicture(song_file)
-
-            with open(self.album_art_loc, "wb") as f:
-                f.write(albumart_data["binary"])
-
-        except CommandError:
-            readpictureFailed = True
-
+        # Get embedded album art from file
+        albumart_data = self.client.readpicture(song_file)
 
         # If readpicture fails, try mpd's albumart function
-        if readpictureFailed:
+        if not albumart_data:
             try:
                 albumart_data = self.client.albumart(song_file)
-
-                with open(self.album_art_loc, "wb") as f:
-                    f.write(albumart_data["binary"])
 
             except CommandError:
                 # If this also fails, just draw fallback image
                 self.drawDefaultAlbumArt()
+
+                return
+
+        with open(self.album_art_loc, "wb") as f:
+            f.write(albumart_data["binary"])
 
 
     def drawDefaultAlbumArt(self):
