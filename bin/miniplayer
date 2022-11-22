@@ -517,7 +517,6 @@ class Player:
             # if the file has no embedded image.
             if albumart_data:
                 with open(self.album_art_loc, "wb") as f:
-                    print('x')
                     f.write(albumart_data["binary"])
             else:    
                 self.drawDefaultAlbumArt()
