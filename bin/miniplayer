@@ -9,7 +9,7 @@ import ueberzug.lib.v0 as ueberzug
 from PIL import Image, ImageDraw
 from colorthief import ColorThief
 import math
-
+import ffmpeg
 
 # Get config
 config = configparser.ConfigParser()
@@ -500,13 +500,27 @@ class Player:
         it to self.album_art_loc
         """
         try:
+            # This can effectively be used like an override to the
+            # embeded album art of a file.
             albumart_data = self.client.albumart(song_file)
 
             with open(self.album_art_loc, "wb") as f:
                 f.write(albumart_data["binary"])
 
         except CommandError:
-            self.drawDefaultAlbumArt()
+            # Given that MPD does not recognize any album art we can
+            # have it read the file's embeded image, this would be
+            # slower.
+            albumart_data = self.client.readpicture(song_file)
+
+            # Check if the dict is empty, since an empty dict is returned
+            # if the file has no embed image.
+            if albumart_data:
+                with open(self.album_art_loc, "wb") as f:
+                    print('x')
+                    f.write(albumart_data["binary"])
+            else:    
+                self.drawDefaultAlbumArt()
 
 
     def drawDefaultAlbumArt(self):
