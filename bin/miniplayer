@@ -22,7 +22,7 @@ if "player" not in config.sections():
                         "album_art_only":  False,
                         "volume_step":     5,
                         "auto_close":      False,
-                        "show_playlist":   True,
+                        "show_playlist":   True
                         }
 
 if "art" not in config.sections():
@@ -30,7 +30,7 @@ if "art" not in config.sections():
 
 if "mpd" not in config.sections():
     config["mpd"] = {"host": "localhost",
-                     "port": "6600",
+                     "port": "6600"
                     }
 
 if "theme" not in config.sections():
@@ -179,7 +179,7 @@ class Player:
 
         color_array = [
             theme_config.get("accent_color", "yellow"),
-            theme_config.get("time_color",   "yellow"), 
+            theme_config.get("time_color",   "yellow"),
             theme_config.get("bar_color",    "green" )
         ]
 
@@ -192,7 +192,7 @@ class Player:
             # check for auto color
             if color == "auto":
                 color = self.AUTO_COLOR
-                self.auto_pairs.append(i+1)     
+                self.auto_pairs.append(i+1)
 
             # Verify that the color is ok
             if color is None:
@@ -358,8 +358,8 @@ class Player:
 
         # Sort palette based on score
         palette = sorted(
-            palette, 
-            reverse=True, 
+            palette,
+            reverse=True,
             key=lambda x: x[0]*colorScore(*x[1])
         )
 
@@ -499,14 +499,29 @@ class Player:
         A function that fetches the album art and saves
         it to self.album_art_loc
         """
+
+        readpictureFailed = False
         try:
-            albumart_data = self.client.albumart(song_file)
+            albumart_data = self.client.readpicture(song_file)
 
             with open(self.album_art_loc, "wb") as f:
                 f.write(albumart_data["binary"])
 
         except CommandError:
-            self.drawDefaultAlbumArt()
+            readpictureFailed = True
+
+
+        # If readpicture fails, try mpd's albumart function
+        if readpictureFailed:
+            try:
+                albumart_data = self.client.albumart(song_file)
+
+                with open(self.album_art_loc, "wb") as f:
+                    f.write(albumart_data["binary"])
+
+            except CommandError:
+                # If this also fails, just draw fallback image
+                self.drawDefaultAlbumArt()
 
 
     def drawDefaultAlbumArt(self):
@@ -730,7 +745,7 @@ class Player:
                 # No moving up if we're already at the top!
                 if self.selected_song > 0:
                     self.client.swap(self.selected_song, self.selected_song - 1)
-                    self.selected_song -= 1 
+                    self.selected_song -= 1
                     self.update_needed  = True
 
             elif action == "move_down":
