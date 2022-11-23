@@ -49,11 +49,15 @@ if "mpd" not in config.sections():
                     }
 
 if "theme" not in config.sections():
-    config["theme"] = {"accent_color": "yellow",
-                       "bar_color":    "green",
-                       "time_color":   "yellow",
-                       "bar_body":     "─",
-                       "bar_head":     "╶"
+    config["theme"] = {"accent_color":            "yellow",
+                       "bar_color":               "green",
+                       "time_color":              "yellow",
+                       "command_sep_color":       "white",
+                       "command_hierarchy_color": "yellow",
+                       "bar_body":                "─",
+                       "bar_head":                "╶",
+                       "command_line_char":       ":",
+                       "command_sep":             "->"
                       }
 
 # Initialise keybindings
@@ -72,7 +76,8 @@ default_bindings = {">":      "next_track",
                     "r":      "repeat",
                     "delete": "delete",
                     "Up":     "move_up",
-                    "Down":   "move_down"
+                    "Down":   "move_down",
+                    ":":      "command_line"
                     }
 
 if "keybindings" not in config.sections():
@@ -122,9 +127,18 @@ AUTOCLOSE = player_config.getboolean("auto_close", False)
 # Playlist padding
 PLAYLISTMARGIN = 4
 
+GROUP_SEP = " "
+
 # Config option to display the playlist
 DISABLEPLAYLIST = not player_config.getboolean("show_playlist", True)
 
+# Tag strings
+TAG_STRINGS = [
+    "artist",
+    "album",
+    "aa",
+    "song"
+]
 
 def albumArtSize(album_space, window_width):
     """
@@ -195,9 +209,11 @@ class Player:
         self.auto_pairs = []
 
         color_array = [
-            theme_config.get("accent_color", "yellow"),
-            theme_config.get("time_color",   "yellow"),
-            theme_config.get("bar_color",    "green" )
+            theme_config.get("accent_color",                "yellow"),
+            theme_config.get("time_color",                  "yellow"),
+            theme_config.get("bar_color",                   "green" ),
+            theme_config.get("command_sep_color",           "white" ),
+            theme_config.get("command_hierarchy_color",    "yellow" ),
         ]
 
         i = 0
@@ -224,6 +240,8 @@ class Player:
         curses.init_pair(1, color_array[0], -1) # accent color
         curses.init_pair(2, color_array[1], -1) # time color
         curses.init_pair(3, color_array[2], -1) # bar color
+        curses.init_pair(4, color_array[3], -1) # cmd sep
+        curses.init_pair(5, color_array[4], -1) # cmd hierarchy 
 
         # Get progress bar characters
         self.bar_body = theme_config.get("bar_body", "─")
@@ -653,6 +671,285 @@ class Player:
         self.art_win.refresh()
 
 
+    def stopTyping(self):
+        """
+        A function that clears the command line
+        """
+        self.stdscr.move(self.screen_height-1, 0)
+        self.stdscr.clrtoeol()
+
+        self.typing = False
+        self.command_line = ""
+        self.command_temp = ""
+        self.command_tab_cycle = 0
+        self.update_needed = True
+
+
+    def commandLineParser(self, groupping, tags=None, action="add"):
+        """
+        A function that parses the grouppings and tags
+        in the config line and tries to act on them accordingly
+        """
+
+        # Clean up groupping and tags
+        groupping = groupping.strip()
+
+        if tags is not None:
+            tags = [t.strip() for t in tags]
+        
+
+        # No tags
+        if not tags:
+            # Check if we want to complete
+            if len(groupping) > 0 and action == "complete":
+                available_tags = []
+
+                # Find available tag strings to complete
+                for res in TAG_STRINGS:
+                    if groupping.lower() ==  res[:len(groupping)]:
+                        available_tags.append(res)
+
+                # Complete
+                if len(available_tags) == 1:
+                    self.command_line = available_tags[0] + GROUP_SEP 
+            return
+
+        # Invalid groupping
+        if groupping not in TAG_STRINGS:
+            return
+
+        # Hierarchies
+        if groupping == "album":
+            hierarchy = [
+                "Album",
+                "Title"
+            ]
+
+        if groupping == "artist":
+            hierarchy = [
+                "Artist",
+                "Title"
+            ]
+
+        if groupping == "aa":
+            hierarchy = [
+                "Artist",
+                "Album",
+                "Title"
+            ]
+
+        if groupping == "song":
+            hierarchy = [
+                "Title"
+            ]
+
+        def _checkIfExact(result, tag, query):
+            """
+            A function that checks for an exact match in
+            the search results
+            """
+
+            for r in result:
+                if tag in r.keys():
+                    if isinstance(r[tag], list):
+                        r[tag] = r[tag][0]
+
+                    if query.lower() == r[tag].lower():
+                        return r
+
+            return False
+        
+
+        def _maxCompletion(result, tag):
+            """
+            Function that tries to find the biggest
+            common string in the tag field of result
+            """
+
+            max_completion = None
+
+            # Iterate over result
+            for r in result:
+
+                if tag in r.keys():
+
+                    # Init max_completion if it hasn't been
+                    if max_completion is None:
+                        max_completion = r[tag]
+                        continue
+
+                    aux = ""
+
+                    # Figure out how far we can go
+                    max_index = min(len(max_completion), len(r[tag]))
+
+                    # Iterate over r[tag] and max_completion until
+                    # mismatch
+                    i = 0
+                    while i < max_index:
+                        if r[tag][i] != max_completion[i]:
+                            break
+                        else:
+                            aux += r[tag][i]
+
+                        i += 1
+
+                    # Update max_completion
+                    max_completion = aux
+
+            if not max_completion:
+                return None
+
+            return max_completion
+
+
+        def _checkIfOne(result, tag):
+            """
+            A function that checks if we only have
+            one candidate for tag in result
+            """
+            seen_tags = set()
+
+            for r in result:
+                if tag in r.keys():
+                    seen_tags.add(r[tag])
+
+            return len(seen_tags) == 1
+        
+
+        # Init parameters
+        params = []
+        top_tag = None
+
+        # Create search parameters
+        for tag, value in zip(hierarchy, tags):
+            params.append(tag)
+            params.append(value)
+
+            top_tag = tag.lower()
+
+        # Do search
+        available_tags = self.client.search(*params) 
+
+        # Check for exact match
+        exact_match = _checkIfExact(available_tags, top_tag, tags[-1])
+
+        if exact_match:
+            # Handle exact match
+            if action == "complete":
+                available_tags = [exact_match]
+
+            if action == "add":
+                find_params = []
+
+                # Reinit params for the find command (these are case sensitive)
+                for tag in hierarchy:
+                    find_params.append(tag)
+                    find_params.append(exact_match[tag.lower()])
+
+                self.client.findadd(*[p.strip() for p in params])
+
+                return
+
+        # Find max completion
+        max_completion = _maxCompletion(available_tags, top_tag)
+
+        # Handle only one match
+        if _checkIfOne(available_tags, top_tag):
+            if action == "complete":
+                autocomplete = available_tags[0][top_tag]
+
+                if len(tags) < len(hierarchy):
+                    autocomplete += "/"
+
+                if len(tags) > 1:
+                    autocomplete = "/" + autocomplete
+
+                # Update command line
+                self.command_line = groupping + GROUP_SEP + "/".join(tags[:-1]) + autocomplete
+                return
+
+            if action == "add":
+                self.client.searchadd(*[p.strip() for p in params])
+
+            return
+
+        # Handle max_completion
+        elif action == "complete" and max_completion:
+            autocomplete = max_completion
+
+            if len(tags) > 1:
+                autocomplete = "/" + autocomplete
+
+            self.command_line = groupping + GROUP_SEP + "/".join(tags[:-1]) + autocomplete
+            return
+
+
+    def handleTyping(self, keyChar):
+        """
+        A function that handles user input while typing
+        in the command line.
+        """
+
+        if keyChar == "space":
+            keyChar = " "
+    
+        if keyChar == "escape":
+            self.stopTyping()
+            return
+
+        if keyChar == "backspace":
+            self.command_line = self.command_line[:-1]
+            return
+
+
+        # Split command line for the parser
+        command_line = self.command_line.split(GROUP_SEP, maxsplit=1)
+        groupping = command_line[0]
+        
+        if len(command_line) > 1:
+            tags = command_line[1].split("/")
+
+            # Clean up empty tags
+            while len(tags) > 0 and not tags[0]:
+                tags = tags[1:]
+
+            last_tag = None
+            while len(tags) > 0 and not tags[-1]:
+                last_tag = tags[-1]
+                tags = tags[:-1]
+
+            if last_tag is not None:
+                tags.append(last_tag)
+
+        else:
+            tags = None
+
+        # Figure out which action to use
+        action = None
+
+        if keyChar == "tab":
+            action = "complete"
+
+        elif keyChar == "enter":
+            action = "add"
+
+        if action is not None:
+            self.commandLineParser(groupping, tags=tags, action=action)
+
+        if keyChar == "enter":
+            self.stopTyping()
+            return
+
+        if len(keyChar) == 1:
+            # Be careful not to go outside of screen
+            if not tags and len(groupping) > max([len(t) for t in TAG_STRINGS]) + 1:
+                return
+
+            self.command_line += keyChar
+
+
+
     def handleKeypress(self):
         """
         A function to handle keypresses
@@ -674,7 +971,9 @@ class Player:
                            10:                "enter",
                            32:                "space",
                            330:               "delete",
-                           263:               "backspace"
+                           263:               "backspace",
+                           27:                "escape",
+                           9:                 "tab"
                            }
 
         if self.checkSongUpdate() == 1:
@@ -697,6 +996,12 @@ class Player:
                 keyChar = special_key_map[key]
             else:
                 keyChar = chr(key)
+
+            # Handle typing if we are typing
+            if self.typing:
+                self.handleTyping(keyChar)
+                self.update_needed = True
+                return
 
             # Get playlist length
             playlist_length = len(self.client.playlist())
@@ -806,6 +1111,10 @@ class Player:
             elif action == "delete":
                 self.client.delete(self.selected_song % playlist_length)
                 self.update_needed = True
+            
+            elif action == "command_line":
+                self.typing = True
+                self.update_needed = True
 
             key = self.stdscr.getch()
 
@@ -878,6 +1187,44 @@ class Player:
 
         self.art_win.refresh()
 
+    
+    def drawCommandLine(self):
+        """
+        A function that draws the command line
+        """
+
+        if not self.typing:
+            return
+
+        self.stdscr.move(self.screen_height - 1, 0)
+        self.stdscr.clrtoeol()
+        self.stdscr.addstr(f"{self.command_line_char} ")
+
+        # Split draw string
+        draw_string = self.command_line
+
+        draw_string = draw_string.split(GROUP_SEP, maxsplit=1)
+        groupping = draw_string[0].strip()
+
+        # Check for groupping
+        if groupping in TAG_STRINGS:
+            self.stdscr.addstr(groupping, curses.color_pair(5) | curses.A_REVERSE)
+
+        else:
+            self.stdscr.addstr(groupping)
+
+        if len(draw_string) > 1:
+            rest = draw_string[1]
+            self.stdscr.addstr(f" {self.command_line_sep} ", curses.color_pair(4))
+
+        else:
+            rest = ""
+
+        start = max(len(rest) - (self.screen_width - len(groupping) - 5 - len(self.command_line_char) - len(self.command_line_sep)), 0)
+
+        draw_string = rest[start:] + "_"
+
+        self.stdscr.addstr(draw_string)
 
     def drawPlaylist(self):
         """
@@ -1073,14 +1420,13 @@ class Player:
             return
 
         self.has_music_been_played = True
-
+        
         # Draw the window
         if not self.album_art_only:
             self.drawInfo()
             self.drawPlaylist()
 
         self.drawAlbumArt()
-
 
     @ueberzug.Canvas()
     def loop(self, canvas):
@@ -1112,12 +1458,17 @@ class Player:
                     # Checko for window size update
                     self.updateWindowSize()
 
-                    if not self.help:
-                        self.draw()
-
-                    else:
+                    if self.help:
                         self.hideAlbumArt()
                         self.drawHelp()
+
+                    elif self.typing:
+                        self.drawCommandLine()
+                        self.fps = 120
+                        
+                    else:
+                        self.fps = FPS
+                        self.draw()
 
                     if self.color_update_needed:
                         self.getDominantColor()
@@ -1130,11 +1481,12 @@ class Player:
 
                 e = time.perf_counter()
 
-                sleeptime = abs(1/FPS - (e-s))
+                sleeptime = abs(1/self.fps - (e-s))
+                
                 if not self.update_needed:
                     time.sleep(sleeptime)
 
-                i = (i + 1) % FPS
+                i = (i + 1) % self.fps
 
         except KeyboardInterrupt:
             self.error = False or self.error
