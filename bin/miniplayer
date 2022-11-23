@@ -681,7 +681,13 @@ class Player:
             stopped = False
 
         # Get key
-        key = self.stdscr.getch()
+        try:
+            key = self.stdscr.get_wch()
+            
+            if isinstance(key, str):
+                key = ord(key)
+        except curses.error:
+            key = 0
 
         while key > 0:
             # Resolve every key in buffer
