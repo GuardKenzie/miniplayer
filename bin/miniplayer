@@ -1129,8 +1129,9 @@ class Player:
                 e = time.perf_counter()
 
                 sleeptime = abs(1/FPS - (e-s))
+                if not self.update_needed:
+                    time.sleep(sleeptime)
 
-                time.sleep(sleeptime)
                 i = (i + 1) % FPS
 
         except KeyboardInterrupt:
