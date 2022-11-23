@@ -302,6 +302,16 @@ class Player:
         # Selected song in playlist
         self.selected_song = 0
 
+        # Typing and command line flags
+        self.typing = False
+        self.command_line = ""
+        self.command_tab_cycle = 0
+
+        self.command_line_char = theme_config.get("command_char", ":" )
+        self.command_line_sep  = theme_config.get("command_sep",  "->")
+
+        self.fps = FPS
+
 
     def getDominantColor(self):
         """
