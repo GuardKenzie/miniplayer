@@ -143,7 +143,7 @@ The format is as follows:
 [hierarchy] [tag1/tag2/tag3/...tagN]
 ```
 
-![playlist](img/playlist.png)
+![hierarchy](img/cmd.png)
 
 * You do not have to populate all the tags. if you type, for example, `artist Phoebe Bridgers/` and hit enter, all of Phoebe's music in your library will be added to the playlist.
 
