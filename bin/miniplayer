@@ -182,6 +182,8 @@ class Player:
 
         curses.cbreak()
 
+        curses.set_escdelay(1)
+
         curses.start_color()
         curses.use_default_colors()
 
