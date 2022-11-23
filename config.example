@@ -31,12 +31,19 @@ port   = 6600
 # delete = delete
 # x      = shuffle
 # r      = repeat
+# :      = command_line
 
 # [theme]
 # # If a color is set to "auto", it will automatically pick the color based on the album art
 # accent_color = auto
 # bar_color = auto
 # time_color = white
+# command_hierarchy_color = yellow
+# command_sep_color = white
+#
+# # The command line
+# command_sep  = ->
+# command_char = :
 #
 # # The progress bar. Only one character allowed for body and head
 # bar_body = -

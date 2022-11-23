@@ -80,6 +80,7 @@ To use `shift` as a modifier, capitalize the keybinding (i.e. `shift + p` become
 | `shuffle`         |
 | `repeat`          |
 | `delete`          |
+| `command_line`   |
 
 
 ### theme
@@ -92,6 +93,8 @@ Make it yours!
 | time_color   | The color for the time stamp                               |
 | bar_body     | A single character to use for the body of the progress bar |
 | bar_head     | A single character to use for the head of the progress bar |
+| command_sep  | Characters used to seperate the command line               |
+| command_char | Characters to indicate the command line is open            |
 
 The following terminal colors can be used:
 * `black`
@@ -126,9 +129,43 @@ You can also use the magic colour called `auto`. If you pick it, the player will
 | Shift + down | Move selected song down            |
 | x            | Shuffle playlist                   |
 | r            | Toggle repeat                      |
+| :            | Open command line                  |
 
 These keybinds can be changed by editing the config file. See the [`config.example`](config.example) file for the format.
     
+## The command line
+
+The command line can be used to add songs to the current playlist. To launch it, press the `command_line` button (that's `:` by default). The command line supports some tab completion but you cannot move the caret left or right (yet).
+
+The format is as follows:
+
+```
+[hierarchy] [tag1/tag2/tag3/...tagN]
+```
+
+![hierarchy](img/cmd.png)
+
+* You do not have to populate all the tags. if you type, for example, `artist Phoebe Bridgers/` and hit enter, all of Phoebe's music in your library will be added to the playlist.
+
+* **NOTE** You do not type the seperator! It is added automatically. Just use a space!
+
+The hierarchy controls the order of the tags and what each tag represents. Currently there are 4 available hierarchies with plans to add user configurable ones in the future.
+
+### Hierarchies
+| Hierarchy | Tag format        |
+| --------- | ----------------- |
+| album     | album/song        |
+| artist    | artist/song       |
+| song      | song              |
+| aa        | artist/album/song |
+
+
+### Command line keys
+
+| Key    | Action                                          |
+|--------|-------------------------------------------------|
+| Escape | Exit command line                               |
+| Enter  | Attempt to add the current tags to the playlist |
 
 ## F.A.Q.
 - **Q:** Album art is not showing up.  
