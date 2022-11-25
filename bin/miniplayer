@@ -302,6 +302,7 @@ class Player:
 
         # Toggle for help menu
         self.help = False
+        self.help_scroll = 0
         self.cleared = False
 
         # Ueberzug placement
@@ -537,6 +538,9 @@ class Player:
             self.art_win.resize(self.art_window_height, self.art_window_width)
 
             self.screen_height, self.screen_width = window_height, window_width
+
+            # Reset help scroll
+            self.help_scroll = 0
 
 
     def getAlbumArt(self, song_file):
@@ -1044,6 +1048,7 @@ class Player:
 
             elif action == "help":
                 self.help = not self.help
+                self.help_scroll = 0
                 self.cleared = False
                 self.update_needed = True
 
@@ -1052,12 +1057,20 @@ class Player:
                 self.update_needed = True
 
             elif action == "select_up":
+                if self.help:
+                    self.help_scroll -= 1
+
+                    self.help_scroll = max(self.help_scroll, 0)
+                    
                 self.control_cycle = 1
                 if playlist_length > 0:
                     self.selected_song = (self.selected_song - 1) % playlist_length
                 self.update_needed = True
 
             elif action == "select_down":
+                if self.help:
+                    self.help_scroll += 1
+
                 self.control_cycle = 1
                 if playlist_length > 0:
                     self.selected_song = (self.selected_song + 1) % playlist_length
@@ -1347,7 +1360,7 @@ class Player:
         """
 
         x_pos = self.art_window_width / 2 - len(string) / 2
-        self.art_win.addstr(y, int(x_pos), string)
+        self.art_win.addstr(y, int(x_pos), string, curses.A_BOLD)
 
 
     def drawHelp(self):
@@ -1364,25 +1377,68 @@ class Player:
 
         # Actual space for text
         x_space = self.art_window_width - 2 * (lr_margin)
+        y_space = self.screen_height - top_vspace - 1
 
         # Check if window has been cleared
         if not self.cleared:
-            self.art_win.clear()
+            self.stdscr.clear()
+            self.stdscr.refresh()
+
             self.cleared = True
 
+        self.art_win.clear()
+
         # Figure out center, y_start and x_start
-        y_start = top_vspace
         x_start = int(lr_margin)
+        y_start = top_vspace
 
         # Draw title
-        self.centerText(y_start, "Keymap")
+        self.centerText(1, "Keymap")
 
         # Draw help
-        for key, desc in keybindings.items():
+        items_to_display = keybindings.items()
+
+        # Figure out where to start
+        self.help_scroll = min(len(items_to_display) - y_space, self.help_scroll)
+        start_index = self.help_scroll
+        end_index = min(self.help_scroll + y_space, len(items_to_display))
+
+        # Add footer
+        if end_index != len(items_to_display):
+            footer = f"{len(items_to_display) - end_index} more..."
+            end_index -= 1
+        else:
+            footer = ""
+
+        for key, desc in list(items_to_display)[start_index:end_index]:
             y_start += 1
-            sep = "." * (x_space - len(key) - len(desc) - 2)
+
+            sep = "." * max(
+                min(
+                    x_space - len(key) - len(desc) - 2, 
+                    35 - len(key) - len(desc)
+                ),
+                0
+            )
+
             desc = desc.replace("_", " ").capitalize()
-            self.art_win.addstr(y_start, x_start, f"{key} {sep} {desc}")
+
+            string = f"{key} {sep} {desc}"
+
+            x_pos = self.art_window_width / 2 - len(string) / 2
+            self.art_win.move(y_start, int(x_pos))
+
+            self.art_win.addstr(key, curses.color_pair(1))
+            self.art_win.addstr(" ")
+            self.art_win.addstr(sep)
+            self.art_win.addstr(" ")
+            self.art_win.addstr(desc, curses.A_ITALIC)
+
+            # self.centerText(y_start, f"{key} {sep} {desc}")
+
+        if footer:
+            self.art_win.addstr(y_start + 1,0, footer, curses.A_ITALIC | curses.A_REVERSE)
+            # self.art_win.addstr(y_start, x_start, f"{key} {sep} {desc}")
 
         self.art_win.refresh()
 
