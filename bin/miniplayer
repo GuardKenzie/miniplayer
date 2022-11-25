@@ -764,13 +764,13 @@ class Player:
             return False
         
 
-        def _maxCompletion(result, tag):
+        def _maxCompletion(result, tag, query):
             """
             Function that tries to find the biggest
             common string in the tag field of result
             """
 
-            max_completion = None
+            max_completion  = None
 
             # Iterate over result
             for r in result:
@@ -778,6 +778,9 @@ class Player:
                 if tag in r.keys():
 
                     # Init max_completion if it hasn't been
+                    if r[tag][:len(query)].lower() != query.lower():
+                        continue
+
                     if max_completion is None:
                         max_completion = r[tag]
                         continue
@@ -856,7 +859,7 @@ class Player:
                 return
 
         # Find max completion
-        max_completion = _maxCompletion(available_tags, top_tag)
+        max_completion = _maxCompletion(available_tags, top_tag, tags[-1])
 
         # Handle only one match
         if _checkIfOne(available_tags, top_tag):
@@ -918,13 +921,9 @@ class Player:
             while len(tags) > 0 and not tags[0]:
                 tags = tags[1:]
 
-            last_tag = None
             while len(tags) > 0 and not tags[-1]:
-                last_tag = tags[-1]
                 tags = tags[:-1]
 
-            if last_tag is not None:
-                tags.append(last_tag)
 
         else:
             tags = None
@@ -959,7 +958,7 @@ class Player:
         A function to handle keypresses
         """
 
-        anytime_keys = ["quit", "help", "select_up", "select_down", "select"]
+        anytime_keys = ["quit", "help", "select_up", "select_down", "select", "command_line"]
 
         playlist_keys = ["delete", "select_up", "select_down", "select", "move_up", "move_down"]
 
