@@ -387,7 +387,7 @@ class Player:
                 return 0.01 * (brightness**2)
             else:
                 return math.sqrt(brightness**2 * saturation)
-            
+
         def weight(x):
             """
             A weight function to transform the color scores based
