@@ -1,4 +1,4 @@
-#!/bin/python
+#!/usr/bin/python
 import curses
 import os
 from mpd import MPDClient, CommandError
@@ -171,7 +171,8 @@ def colorNameToCurses(name):
         "magenta":  5,
         "cyan":     6,
         "white":    -1,
-        "auto":     "auto"
+        "auto":     "auto",
+        "secondary": "secondary"
     }
 
     if name not in converter.keys():
@@ -203,10 +204,11 @@ class Player:
 
         # Color initialisation
         self.AUTO_COLOR = curses.COLOR_WHITE
-
+        self.SECONDARY_COLOR = curses.COLOR_WHITE + 1
         
-        # Figure out which pairs we need to auto color
+        # Figure out which pairs we need to auto color and secondary color
         self.auto_pairs = []
+        self.secondary_pairs = []
 
         color_array = [
             theme_config.get("accent_color",                "yellow"),
@@ -226,6 +228,11 @@ class Player:
             if color == "auto":
                 color = self.AUTO_COLOR
                 self.auto_pairs.append(i+1)
+
+            # Check for secondary color
+            if color == "secondary":
+                color = self.SECONDARY_COLOR
+                self.secondary_pairs.append(i+1)
 
             # Verify that the color is ok
             if color is None:
@@ -312,7 +319,7 @@ class Player:
         self.update_needed = False
 
         # Color update needed flag
-        self.color_update_needed = bool(self.auto_pairs)
+        self.color_update_needed = bool(self.auto_pairs) or bool(self.secondary_pairs)
 
         # Flag to check if any music has been played
         self.has_music_been_played = False
@@ -334,11 +341,9 @@ class Player:
         self.fps = FPS
 
 
-    def getDominantColor(self):
+    def getColorPalette(self):
         """
-        A function that finds the dominant color in the album art,
-        finds the closest curses color to that and sets the foreground
-        color.
+        Gets an array of colors from the image's palette.
         """
 
         COLOR_COUNT = 5
@@ -381,6 +386,7 @@ class Player:
                 return 0.01 * (brightness**2)
             else:
                 return math.sqrt(brightness**2 * saturation)
+            
 
         def weight(x):
             """
@@ -388,7 +394,7 @@ class Player:
             on their frequency
             """
             return 1/(x+1)**2
-            
+        
 
         # Init thief and get palette
         try:
@@ -409,8 +415,18 @@ class Player:
             key=lambda x: x[0]*colorScore(*x[1])
         )
 
+        return palette
+    
+
+    def getDominantColor(self):
+        """
+        A function that finds the dominant color in the album art,
+        finds the closest curses color to that and sets the foreground
+        color.
+        """
+
         # Get the dominant color
-        dominant_color = palette[0][1]
+        dominant_color = self.getColorPalette()[0][1]
 
         # Cast the color to curses range
         col = [round(1000 * val/255) for val in dominant_color]
@@ -423,6 +439,28 @@ class Player:
 
         self.color_update_needed = False
 
+
+    def getSecondaryColor(self):
+        """
+        A function that finds the secondary color in the album art,
+        finds the closest curses color to that and sets the foreground
+        color.
+        """
+
+        # Get the dominant color
+        secondary_color = self.getColorPalette()[1][1]
+
+        # Cast the color to curses range
+        col = [round(1000 * val/255) for val in secondary_color]
+
+        # Set the color
+        curses.init_color(self.SECONDARY_COLOR, *col)
+        
+        for pair in self.secondary_pairs:
+            curses.init_pair(pair, self.SECONDARY_COLOR, -1)
+
+        self.color_update_needed = False
+    
 
     def playlistFits(self, height, width):
         """
@@ -655,9 +693,11 @@ class Player:
             self.getAlbumArt(song["file"])
             self.last_song = song
             
-            # Update dominant color
+            # Update dominant and secondary color
             if self.auto_pairs:
                 self.getDominantColor()
+            if self.secondary_pairs:
+                self.getSecondaryColor()
 
             return 0
 
