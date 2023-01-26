@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/bin/python
 import curses
 import os
 from mpd import MPDClient, CommandError
@@ -205,6 +205,7 @@ class Player:
         # Color initialisation
         self.AUTO_COLOR = curses.COLOR_WHITE
         self.SECONDARY_COLOR = curses.COLOR_WHITE + 1
+
         
         # Figure out which pairs we need to auto color and secondary color
         self.auto_pairs = []
@@ -387,14 +388,13 @@ class Player:
             else:
                 return math.sqrt(brightness**2 * saturation)
             
-
         def weight(x):
             """
             A weight function to transform the color scores based
             on their frequency
             """
             return 1/(x+1)**2
-        
+            
 
         # Init thief and get palette
         try:
