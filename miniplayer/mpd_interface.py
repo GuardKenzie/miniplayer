@@ -39,7 +39,24 @@ class Song:
 
     def __lt__(self, other) -> bool:
         return self.pos < other.pos
+    
+    def __str__(self) -> str:
+        title = self.printable_title()
+        prefix = None
 
+        if self.artist is not None:
+            prefix = self.artist
+        
+        elif self.album_artist is not None:
+            prefix = self.album_artist
+        
+        elif self.album is not None:
+            prefix = self.album
+        
+        if prefix is not None:
+            return f"{prefix} - {title}"
+        else:
+            return f"{title}"
 
 class MPDInterface:
     def __init__(self):
@@ -198,7 +215,7 @@ class MPDInterface:
     
 
     @property
-    def playlist(self) -> list:
+    def playlist(self) -> list[Song]:
         """
         A function that returns the playlist as a list of Song objects.
         """
@@ -222,3 +239,11 @@ class MPDInterface:
         except ConnectionError:
             self._reconnect()
             return self.current_song
+        
+
+    def clear_playlist(self):
+        try:
+            self.client.clear()
+        except ConnectionError:
+            self._reconnect()
+            return self.clear_playlist()
