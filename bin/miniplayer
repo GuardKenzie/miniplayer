@@ -425,8 +425,13 @@ class Player:
         color.
         """
 
+        palette = self.getColorPalette()
+
+        if palette is None or len(palette) < 1:
+            return
+        
         # Get the dominant color
-        dominant_color = self.getColorPalette()[0][1]
+        dominant_color = palette[0][1]
 
         # Cast the color to curses range
         col = [round(1000 * val/255) for val in dominant_color]
@@ -447,8 +452,14 @@ class Player:
         color.
         """
 
-        # Get the dominant color
-        secondary_color = self.getColorPalette()[1][1]
+        palette = self.getColorPalette()
+
+        # There must be two elements to get a secondary
+        if palette is None or len(palette) < 2:
+            return
+        
+        # Get the secondary color
+        secondary_color = palette[1][1]
 
         # Cast the color to curses range
         col = [round(1000 * val/255) for val in secondary_color]
